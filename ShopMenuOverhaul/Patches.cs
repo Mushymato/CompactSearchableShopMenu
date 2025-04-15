@@ -51,11 +51,76 @@ internal static class Patches
             original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveScrollWheelAction)),
             transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_customSnapBehavior_Transpiler))
         );
+        harmony.Patch(
+            original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.leftClickHeld)),
+            transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_leftClickHeld_Transpiler))
+        );
         // draw (do not draw the text cus it's unreadable lol)
         harmony.Patch(
             original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.draw)),
             transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_draw_Transpiler))
         );
+    }
+
+    private static int LeftClickHeldIndex(int originalValue, int y, Rectangle scrollBarRunner, ShopMenu shopMenu)
+    {
+        int perRowV = perRow.Value;
+        if (perRowV == 1)
+            return originalValue;
+        float percent = (float)(y - scrollBarRunner.Y) / scrollBarRunner.Height;
+        int forSaleCount = shopMenu.forSale.Count;
+        int remainder = forSaleCount % perRowV;
+        if (remainder == 0)
+            remainder = perRowV * ROW;
+        else
+            remainder += (ROW - 1) * perRowV;
+        return Math.Min(
+            Math.Max(0, forSaleCount - remainder),
+            Math.Max(0, (int)(MathF.Ceiling((float)(forSaleCount - remainder) / perRowV) * percent) * perRowV)
+        );
+    }
+
+    private static IEnumerable<CodeInstruction> ShopMenu_leftClickHeld_Transpiler(
+        IEnumerable<CodeInstruction> instructions,
+        ILGenerator generator
+    )
+    {
+        // float num = (float)(y - scrollBarRunner.Y) / (float)scrollBarRunner.Height;
+        // currentItemIndex = Math.Min(Math.Max(0, forSale.Count - 4), Math.Max(0, (int)((float)forSale.Count * num)));
+        try
+        {
+            CodeMatcher matcher = new(instructions, generator);
+            matcher
+                .MatchEndForward(
+                    [
+                        new(
+                            OpCodes.Call,
+                            AccessTools.DeclaredMethod(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])
+                        ),
+                        new(
+                            OpCodes.Stfld,
+                            AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.currentItemIndex))
+                        ),
+                    ]
+                )
+                .ThrowIfNotMatch("Failed to find 'currentItemIndex = Math.Min'")
+                .InsertAndAdvance(
+                    [
+                        new(OpCodes.Ldarg_2),
+                        new(OpCodes.Ldarg_0),
+                        new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), "scrollBarRunner")),
+                        new(OpCodes.Ldarg_0),
+                        new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(LeftClickHeldIndex))),
+                    ]
+                );
+
+            return matcher.Instructions();
+        }
+        catch (Exception err)
+        {
+            ModEntry.Log($"Error in ShopMenu_customSnapBehavior_Transpiler:\n{err}", LogLevel.Error);
+            return instructions;
+        }
     }
 
     private static bool ShopMenu_updateSaleButtonNeighbors_Prefix()
