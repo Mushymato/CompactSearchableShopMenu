@@ -1,0 +1,7 @@
+{
+  "$schema": "https://smapi.io/schemas/i18n.json",
+  "config.ShopItemPerRow.name": "Shop Item Per Row",
+  "config.ShopItemPerRow.description": "Number of items per row when a price must be displayed (e.g. regular shops).",
+  "config.DresserItemPerRow.name": "Dresser Item Per Row",
+  "config.DresserItemPerRow.description": "Number of items per row when there are no prices (e.g. dressers, catalogues).",
+}
