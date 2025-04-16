@@ -9,8 +9,6 @@ namespace CompactSearchableShopMenu;
 
 internal sealed class SearchContext : IDisposable
 {
-    // TODO: somehow make snap work
-    internal const int SEARCH_ID = ShopMenu.region_shopButtonModifier * 2;
     internal const int NO_CATEGORY = -9999;
     internal static readonly Rectangle tabSourceRect = new(16, 368, 16, 16);
     internal const int TAB_OFFSET = 8;
@@ -39,7 +37,7 @@ internal sealed class SearchContext : IDisposable
         searchBox = new(Game1.content.Load<Texture2D>("LooseSprites\\textBox"), null, Game1.smallFont, Game1.textColor);
         searchBox.OnEnterPressed += OnEnter;
         searchBox.Text = I18n.Placeholder_Search();
-        searchBoxCC = new(Rectangle.Empty, "SEARCH") { myID = SEARCH_ID };
+        searchBoxCC = new(Rectangle.Empty, "SEARCH");
 
         if (!shopMenu.tabButtons.Any())
         {

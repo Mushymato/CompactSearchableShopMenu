@@ -459,7 +459,8 @@ internal static class Patches
         Vector2 position,
         Color? color,
         float alpha,
-        float layerDepth
+        float layerDepth,
+        SpriteFont? spriteFont = null
     )
     {
         if (color == null)
@@ -467,7 +468,7 @@ internal static class Patches
             Utility.drawTextWithShadow(
                 b,
                 s,
-                Game1.dialogueFont,
+               spriteFont ?? Game1.dialogueFont,
                 position,
                 Game1.textColor * alpha,
                 layerDepth: layerDepth
@@ -479,7 +480,7 @@ internal static class Patches
             Utility.drawTextWithColoredShadow(
                 b,
                 s,
-                Game1.dialogueFont,
+                spriteFont ?? Game1.dialogueFont,
                 position,
                 txtColor,
                 txtColor * 0.5f,
@@ -524,10 +525,20 @@ internal static class Patches
                 color,
                 scroll_text_alignment
             );
+            return;
         }
-        else if (salable.Stack > 1)
+        int xOffset = x;
+        if (!salable.ShouldDrawIcon())
         {
-            DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(x, y), color, alpha, layerDepth);
+            Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
+            xOffset -= 24;
+            y += (int)(stringSize.Y * 2 / 3);
+            DrawShadowOrBoldText(b, s, new Vector2(xOffset, y), color, alpha, layerDepth, Game1.smallFont);
+            xOffset += (int)stringSize.X;
+        }
+        if (salable.Stack > 1)
+        {
+            DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(xOffset, y), color, alpha, layerDepth);
         }
     }
 
