@@ -1,9 +1,14 @@
 {
   "$schema": "https://smapi.io/schemas/i18n.json",
+  // config
   "config.ShopItemPerRow.name": "Shop Item Per Row",
   "config.ShopItemPerRow.description": "Number of items per row when a price must be displayed (e.g. regular shops).",
   "config.DresserItemPerRow.name": "Dresser Item Per Row",
   "config.DresserItemPerRow.description": "Number of items per row when there are no prices (e.g. dressers, catalogues).",
   "config.StackCount.name": "Stack Count on Shift+Ctrl",
   "config.StackCount.description": "Number of items to buy when using Shift+Ctrl (vanilla 25).",
+  "config.EnableSearch.name": "Enable Search",
+  "config.EnableSearch.description": "Enable search box (below the currency display).",
+  // ui
+  "placeholder.search": "Search..."
 }

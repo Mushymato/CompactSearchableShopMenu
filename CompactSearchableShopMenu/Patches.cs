@@ -1,8 +1,11 @@
+using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
@@ -12,7 +15,6 @@ namespace CompactSearchableShopMenu;
 
 internal static class Patches
 {
-    internal const int ROW = 4;
     private static readonly PerScreen<int> perRow = new();
     private static readonly PerScreen<int> perRowR = new();
     private static int PerRowR => perRowR.Value;
@@ -22,27 +24,35 @@ internal static class Patches
         perRow.Value = perRowV;
         int remainder = forSaleCount % perRowV;
         if (remainder == 0)
-            remainder = perRowV * ROW;
+            remainder = perRowV * ShopMenu.itemsPerPage;
         else
-            remainder += (ROW - 1) * perRowV;
+            remainder += (ShopMenu.itemsPerPage - 1) * perRowV;
         perRowR.Value = remainder;
     }
+
+    private static readonly PerScreen<SearchContext?> searchCtx = new();
+    internal static MethodInfo setScrollBarToCurrentIndexMethod = AccessTools.DeclaredMethod(
+        typeof(ShopMenu),
+        "setScrollBarToCurrentIndex"
+    );
 
     internal static bool Success_Grid = true;
     internal static bool Success_Scroll = true;
     internal static bool Success_DrawStrong = true;
     internal static bool Success_DrawWeak = true;
     internal static bool Success_StackCount = true;
+    internal static bool Success_Search = true;
 
-    internal static void Patch()
+    internal static void Patch(IModHelper help)
     {
         perRow.Value = 3;
         perRowR.Value = 4;
+        help.Events.Display.MenuChanged += OnMenuChanged;
 
         Harmony harmony = new(ModEntry.ModId);
         try
         {
-            // stop rebuilding neighbour ids all the time
+            // stop rebuilding neighbor ids all the time
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.updateSaleButtonNeighbors)),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_updateSaleButtonNeighbors_Prefix))
@@ -88,7 +98,7 @@ internal static class Patches
                 transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_leftClickHeld_Transpiler))
             );
             harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), "setScrollBarToCurrentIndex"),
+                original: setScrollBarToCurrentIndexMethod,
                 transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
             );
             harmony.Patch(
@@ -135,6 +145,38 @@ internal static class Patches
             }
         }
 
+        // search box
+        try
+        {
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), "Initialize"),
+                postfix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_Initialize_Postfix))
+            );
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.gameWindowSizeChanged)),
+                postfix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_gameWindowSizeChanged_Postfix))
+            );
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
+                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_Prefix)),
+                postfix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_Postfix))
+            );
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveKeyPress)),
+                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveKeyPress_Prefix))
+            );
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.drawCurrency)),
+                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_drawCurrency_Prefix))
+            );
+        }
+        catch (Exception ex)
+        {
+            Success_Search = false;
+            ModEntry.LogOnce("Failed to apply search patches, no search box available.", LogLevel.Warn);
+            ModEntry.Log(ex.ToString());
+        }
+
         // stack count adjustment
         try
         {
@@ -153,6 +195,50 @@ internal static class Patches
             ModEntry.LogOnce("Failed to apply stack count patch, using vanilla buy 25 on Shift+Ctrl.", LogLevel.Warn);
             ModEntry.Log(ex.ToString());
         }
+    }
+
+    private static void OnMenuChanged(object? sender, MenuChangedEventArgs e)
+    {
+        if (searchCtx.Value != null && e.NewMenu == null)
+        {
+            searchCtx.Value.Dispose();
+            searchCtx.Value = null;
+        }
+    }
+
+    private static void ShopMenu_Initialize_Postfix(ShopMenu __instance)
+    {
+        if (searchCtx.Value != null)
+        {
+            searchCtx.Value.Dispose();
+            searchCtx.Value = null;
+        }
+        searchCtx.Value = new(__instance);
+    }
+
+    private static void ShopMenu_gameWindowSizeChanged_Postfix()
+    {
+        searchCtx.Value?.Reposition();
+    }
+
+    private static void ShopMenu_receiveLeftClick_Prefix(int x, int y)
+    {
+        searchCtx.Value?.OnLeftClickPrefix(x, y);
+    }
+
+    private static void ShopMenu_receiveLeftClick_Postfix(int x, int y)
+    {
+        searchCtx.Value?.OnLeftClickPostfix(x, y);
+    }
+
+    private static void ShopMenu_receiveKeyPress_Prefix(Keys key)
+    {
+        searchCtx.Value?.OnKeyPress(key);
+    }
+
+    private static void ShopMenu_drawCurrency_Prefix(SpriteBatch b)
+    {
+        searchCtx.Value?.Draw(b);
     }
 
     private static int LeftClickHeldIndex(int originalValue, int y, Rectangle scrollBarRunner, ShopMenu shopMenu)
@@ -294,7 +380,9 @@ internal static class Patches
                         upNeighborID = idx > perRowV ? myID - perRowV : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
                         rightNeighborID = i == perRowV - 1 ? ShopMenu.region_upArrow : myID + 1,
                         downNeighborID =
-                            idx < perRowV * (ROW - 1) ? myID + perRowV : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
+                            idx < perRowV * (ShopMenu.itemsPerPage - 1)
+                                ? myID + perRowV
+                                : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
                         leftNeighborID = i == 0 ? ClickableComponent.SNAP_AUTOMATIC : myID - 1,
                         fullyImmutable = true,
                     }

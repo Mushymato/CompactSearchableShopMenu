@@ -21,7 +21,7 @@ public class ModEntry : Mod
         ModId = ModManifest.UniqueID;
         Config = Helper.ReadConfig<ModConfig>();
         helper.Events.GameLoop.GameLaunched += OnGameLaunched;
-        Patches.Patch();
+        Patches.Patch(helper);
     }
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
