@@ -1,0 +1,14 @@
+{
+  "$schema": "https://smapi.io/schemas/i18n.json",
+  // config
+  "config.ShopItemPerRow.name": "商店每行物品数",
+  "config.ShopItemPerRow.description": "当物品有价钱时(普通商店)，使用这个列数。",
+  "config.DresserItemPerRow.name": "柜子每行物品数",
+  "config.DresserItemPerRow.description": "当物品没有价钱时(柜子，家具目录)，使用这个列数。",
+  "config.StackCount.name": "Shift+Ctrl购买数",
+  "config.StackCount.description": "用Shift+Ctrl时购买的数量(原版25)。",
+  "config.EnableSearchAndFilters.name": "启用搜索和过滤",
+  "config.EnableSearchAndFilters.description": "启用搜索框和类别选项（当菜单没有自带类别时）。",
+  // ui
+  "placeholder.search": "搜索..."
+}

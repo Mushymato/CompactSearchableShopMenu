@@ -89,8 +89,8 @@ internal sealed class ModConfig
                 mod,
                 getValue: () => EnableSearchAndFilters,
                 setValue: (value) => EnableSearchAndFilters = value,
-                name: I18n.Config_EnableSearch_Name,
-                tooltip: I18n.Config_EnableSearch_Description
+                name: I18n.Config_EnableSearchAndFilters_Name,
+                tooltip: I18n.Config_EnableSearchAndFilters_Description
             );
         }
         else { }

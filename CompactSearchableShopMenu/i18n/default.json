@@ -7,8 +7,8 @@
   "config.DresserItemPerRow.description": "Number of items per row when there are no prices (e.g. dressers, catalogues).",
   "config.StackCount.name": "Stack Count on Shift+Ctrl",
   "config.StackCount.description": "Number of items to buy when using Shift+Ctrl (vanilla 25).",
-  "config.EnableSearch.name": "Enable Search",
-  "config.EnableSearch.description": "Enable search box (under the currency display).",
+  "config.EnableSearchAndFilters.name": "Enable Search and Filters",
+  "config.EnableSearchAndFilters.description": "Enable search box and category tabs (if the shop does not already have side tabs).",
   // ui
   "placeholder.search": "Search..."
 }

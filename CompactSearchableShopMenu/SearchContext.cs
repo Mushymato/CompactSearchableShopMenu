@@ -27,7 +27,6 @@ internal sealed class SearchContext : IDisposable
     }
     private readonly TextBox searchBox;
     private readonly ClickableComponent searchBoxCC;
-    private List<ISalable>? forSaleAll = null;
     private readonly Dictionary<int, ClickableTextureComponent> categoryTabs = [];
     private readonly List<int> categoryTabsOrder = [];
     private int categoryCurrent = NO_CATEGORY;
@@ -40,44 +39,47 @@ internal sealed class SearchContext : IDisposable
         searchBox.Text = I18n.Placeholder_Search();
         searchBoxCC = new(Rectangle.Empty, "SEARCH") { myID = SEARCH_ID };
 
-        foreach (var sale in Shop!.forSale)
+        if (!shopMenu.tabButtons.Any())
         {
-            if (sale is Item item && !categoryTabs.ContainsKey(item.Category) && !item.IsRecipe)
+            foreach (var sale in Shop!.forSale)
             {
-                string categoryName = StardewValley.Object.GetCategoryDisplayName(item.Category);
-                categoryTabs[item.Category] = new(
-                    item.Category.ToString(),
+                if (sale is Item item && !categoryTabs.ContainsKey(item.Category) && !item.IsRecipe)
+                {
+                    string categoryName = StardewValley.Object.GetCategoryDisplayName(item.Category);
+                    categoryTabs[item.Category] = new(
+                        item.Category.ToString(),
+                        Rectangle.Empty,
+                        "",
+                        categoryName,
+                        Game1.mouseCursors,
+                        tabSourceRect,
+                        4f,
+                        false
+                    )
+                    {
+                        item = item,
+                    };
+                }
+            }
+            if (categoryTabs.Count > 1)
+            {
+                categoryTabsOrder.Add(NO_CATEGORY);
+                categoryTabsOrder.AddRange(categoryTabs.Keys);
+                categoryTabs[NO_CATEGORY] = new(
+                    NO_CATEGORY.ToString(),
                     Rectangle.Empty,
                     "",
-                    categoryName,
+                    "NO_CATEGORY",
                     Game1.mouseCursors,
                     tabSourceRect,
                     4f,
                     false
-                )
-                {
-                    item = item,
-                };
+                );
             }
-        }
-        if (categoryTabs.Count > 1)
-        {
-            categoryTabsOrder.Add(NO_CATEGORY);
-            categoryTabsOrder.AddRange(categoryTabs.Keys);
-            categoryTabs[NO_CATEGORY] = new(
-                NO_CATEGORY.ToString(),
-                Rectangle.Empty,
-                "",
-                "NO_CATEGORY",
-                Game1.mouseCursors,
-                tabSourceRect,
-                4f,
-                false
-            );
-        }
-        else
-        {
-            categoryTabs.Clear();
+            else
+            {
+                categoryTabs.Clear();
+            }
         }
 
         Reposition();
@@ -116,7 +118,6 @@ internal sealed class SearchContext : IDisposable
 
     public void Dispose()
     {
-        forSaleAll = null;
         categoryTabsOrder.Clear();
         categoryTabs.Clear();
         searchBox.Selected = false;
@@ -164,17 +165,16 @@ internal sealed class SearchContext : IDisposable
         {
             cctCurr.bounds.Y += TAB_OFFSET;
         }
-        forSaleAll ??= Shop.forSale;
         DoSearch();
         return false;
     }
 
     public void DoSearch()
     {
-        if (Shop == null || forSaleAll == null)
+        if (Shop == null)
             return;
 
-        IEnumerable<ISalable> forSale = forSaleAll;
+        IEnumerable<ISalable> forSale = Shop.itemPriceAndStock.Keys;
         if (categoryCurrent != NO_CATEGORY)
         {
             forSale = forSale.Where(fs => fs is Item item && item.Category == categoryCurrent);
@@ -196,7 +196,6 @@ internal sealed class SearchContext : IDisposable
 
         if (!searchBox.Selected)
         {
-            forSaleAll ??= Shop.forSale;
             searchBox.Text = "";
             searchBox.SelectMe();
         }
@@ -212,20 +211,15 @@ internal sealed class SearchContext : IDisposable
             searchBox.Text = I18n.Placeholder_Search();
             searchBox.Selected = false;
         }
-        if (forSaleAll != null)
+        if (categoryCurrent == NO_CATEGORY)
         {
-            forSaleAll?.RemoveAll(sale => !Shop.itemPriceAndStock.ContainsKey(sale));
-            if (categoryCurrent == NO_CATEGORY)
-            {
-                Shop.forSale = forSaleAll;
-                forSaleAll = null;
-                Shop.currentItemIndex = 0;
-                Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
-            }
-            else
-            {
-                DoSearch();
-            }
+            Shop.forSale = Shop.itemPriceAndStock.Keys.ToList();
+            Shop.currentItemIndex = 0;
+            Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
+        }
+        else
+        {
+            DoSearch();
         }
     }
 
@@ -243,7 +237,7 @@ internal sealed class SearchContext : IDisposable
             int? clickedCategory = null;
             foreach ((int category, ClickableTextureComponent cct) in categoryTabs)
             {
-                if (cct.bounds.Contains(x, y))
+                if (cct.containsPoint(x, y))
                 {
                     cct.bounds.Y += TAB_OFFSET;
                     clickedCategory = category;
@@ -260,7 +254,6 @@ internal sealed class SearchContext : IDisposable
                 categoryCurrent = (int)clickedCategory;
                 if (categoryCurrent != prevCategory)
                 {
-                    forSaleAll ??= Shop.forSale;
                     DoSearch();
                 }
             }
@@ -274,8 +267,8 @@ internal sealed class SearchContext : IDisposable
 
         if (
             !searchBoxCC.containsPoint(x, y)
-            && !Shop.forSaleButtons.Any(fsb => fsb.bounds.Contains(x, y))
-            && !categoryTabs.Values.Any(cct => cct.bounds.Contains(x, y))
+            && !Shop.forSaleButtons.Any(fsb => fsb.containsPoint(x, y))
+            && !categoryTabs.Values.Any(cct => cct.containsPoint(x, y))
         )
         {
             SearchDeactivate();
