@@ -9,25 +9,76 @@ namespace CompactSearchableShopMenu;
 
 internal sealed class SearchContext : IDisposable
 {
+    // TODO: somehow make snap work
     internal const int SEARCH_ID = ShopMenu.region_shopButtonModifier * 2;
+    internal const int NO_CATEGORY = -9999;
+    internal static readonly Rectangle tabSourceRect = new(16, 368, 16, 16);
+    internal const int TAB_OFFSET = 8;
 
-    private readonly ShopMenu shopMenu;
+    private readonly WeakReference<ShopMenu> shopMenu;
+    private ShopMenu? Shop
+    {
+        get
+        {
+            if (shopMenu.TryGetTarget(out ShopMenu? sm))
+                return sm;
+            return null;
+        }
+    }
     private readonly TextBox searchBox;
     private readonly ClickableComponent searchBoxCC;
     private List<ISalable>? forSaleAll = null;
+    private readonly Dictionary<int, ClickableTextureComponent> categoryTabs = [];
+    private readonly List<int> categoryTabsOrder = [];
+    private int categoryCurrent = NO_CATEGORY;
 
     internal SearchContext(ShopMenu shopMenu)
     {
-        this.shopMenu = shopMenu;
+        this.shopMenu = new(shopMenu);
         searchBox = new(Game1.content.Load<Texture2D>("LooseSprites\\textBox"), null, Game1.smallFont, Game1.textColor);
         searchBox.OnEnterPressed += OnEnter;
         searchBox.Text = I18n.Placeholder_Search();
-        searchBoxCC = new(Rectangle.Empty, "")
+        searchBoxCC = new(Rectangle.Empty, "SEARCH") { myID = SEARCH_ID };
+
+        foreach (var sale in Shop!.forSale)
         {
-            myID = SEARCH_ID,
-            leftNeighborID = ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
-            downNeighborID = ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
-        };
+            if (sale is Item item && !categoryTabs.ContainsKey(item.Category) && !item.IsRecipe)
+            {
+                string categoryName = StardewValley.Object.GetCategoryDisplayName(item.Category);
+                categoryTabs[item.Category] = new(
+                    item.Category.ToString(),
+                    Rectangle.Empty,
+                    "",
+                    categoryName,
+                    Game1.mouseCursors,
+                    tabSourceRect,
+                    4f,
+                    false
+                )
+                {
+                    item = item,
+                };
+            }
+        }
+        if (categoryTabs.Count > 1)
+        {
+            categoryTabsOrder.Add(NO_CATEGORY);
+            categoryTabsOrder.AddRange(categoryTabs.Keys);
+            categoryTabs[NO_CATEGORY] = new(
+                NO_CATEGORY.ToString(),
+                Rectangle.Empty,
+                "",
+                "NO_CATEGORY",
+                Game1.mouseCursors,
+                tabSourceRect,
+                4f,
+                false
+            );
+        }
+        else
+        {
+            categoryTabs.Clear();
+        }
 
         Reposition();
         Game1.keyboardDispatcher.Subscriber = searchBox;
@@ -36,18 +87,39 @@ internal sealed class SearchContext : IDisposable
 
     public void Reposition()
     {
-        searchBox.X = shopMenu.xPositionOnScreen;
-        searchBox.Y = shopMenu.yPositionOnScreen + shopMenu.height - shopMenu.inventory.height - 12 + 17 * 4 + 4;
+        if (Shop == null)
+            return;
+
+        searchBox.X = Shop.xPositionOnScreen;
+        searchBox.Y = Shop.yPositionOnScreen + Shop.height - Shop.inventory.height - 12 + 17 * 4 + 4;
         searchBox.Width = 240;
         searchBox.Height = 56;
         searchBoxCC.bounds = new(searchBox.X, searchBox.Y, searchBox.Width, searchBox.Height);
+
+        int n = 0;
+        foreach (int category in categoryTabsOrder)
+        {
+            ClickableTextureComponent cct = categoryTabs[category];
+            cct.bounds.X = Shop.xPositionOnScreen + n * tabSourceRect.Width * 4 + 20;
+            cct.bounds.Y = Shop.yPositionOnScreen - tabSourceRect.Height * 4 + 8;
+            if (category == categoryCurrent)
+            {
+                cct.bounds.Y += TAB_OFFSET;
+            }
+            cct.bounds.Width = tabSourceRect.Width * 4;
+            cct.bounds.Height = tabSourceRect.Height * 4;
+            n++;
+        }
+
+        categoryCurrent = NO_CATEGORY;
     }
 
     public void Dispose()
     {
+        forSaleAll = null;
+        categoryTabsOrder.Clear();
+        categoryTabs.Clear();
         searchBox.Selected = false;
-        if (shopMenu.allClickableComponents?.Contains(searchBoxCC) ?? false)
-            shopMenu.allClickableComponents.Remove(searchBoxCC);
         if (Game1.keyboardDispatcher.Subscriber == searchBox)
             Game1.keyboardDispatcher.Subscriber = null;
     }
@@ -60,58 +132,165 @@ internal sealed class SearchContext : IDisposable
             DoSearch();
     }
 
-    public void DoSearch()
+    public bool OnGamePadButton(Buttons button)
     {
-        string searchText = searchBox.Text;
-        shopMenu.forSale = forSaleAll!.Where(fs => fs.DisplayName.ContainsIgnoreCase(searchText)).ToList();
-        shopMenu.currentItemIndex = 0;
-        Patches.setScrollBarToCurrentIndexMethod?.Invoke(shopMenu, []);
+        if (
+            Shop == null
+            || categoryTabsOrder.Count == 0
+            || (button != Buttons.RightShoulder && button != Buttons.LeftShoulder)
+        )
+        {
+            return true;
+        }
+        if (categoryTabs.TryGetValue(categoryCurrent, out ClickableTextureComponent? cctCurr))
+        {
+            cctCurr.bounds.Y -= TAB_OFFSET;
+        }
+        int nextIdx = categoryTabsOrder.IndexOf(categoryCurrent);
+        if (button == Buttons.RightShoulder)
+        {
+            nextIdx++;
+            if (nextIdx == categoryTabsOrder.Count)
+                nextIdx = 0;
+        }
+        else if (button == Buttons.LeftShoulder)
+        {
+            nextIdx--;
+            if (nextIdx == -1)
+                nextIdx = categoryTabsOrder.Count - 1;
+        }
+        categoryCurrent = categoryTabsOrder[nextIdx];
+        if (categoryTabs.TryGetValue(categoryCurrent, out cctCurr))
+        {
+            cctCurr.bounds.Y += TAB_OFFSET;
+        }
+        forSaleAll ??= Shop.forSale;
+        DoSearch();
+        return false;
     }
 
-    internal void Activate()
+    public void DoSearch()
     {
+        if (Shop == null || forSaleAll == null)
+            return;
+
+        IEnumerable<ISalable> forSale = forSaleAll;
+        if (categoryCurrent != NO_CATEGORY)
+        {
+            forSale = forSale.Where(fs => fs is Item item && item.Category == categoryCurrent);
+        }
+        if (searchBox.Selected)
+        {
+            string searchText = searchBox.Text;
+            forSale = forSale.Where(fs => fs.DisplayName.ContainsIgnoreCase(searchText));
+        }
+        Shop.forSale = forSale.ToList();
+        Shop.currentItemIndex = 0;
+        Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
+    }
+
+    internal void SearchActivate()
+    {
+        if (Shop == null)
+            return;
+
         if (!searchBox.Selected)
         {
-            forSaleAll = shopMenu.forSale;
+            forSaleAll ??= Shop.forSale;
             searchBox.Text = "";
             searchBox.SelectMe();
-            shopMenu.currentItemIndex = 0;
-            Patches.setScrollBarToCurrentIndexMethod?.Invoke(shopMenu, []);
         }
     }
 
-    internal void Deactivate()
+    internal void SearchDeactivate()
     {
+        if (Shop == null)
+            return;
+
         if (searchBox.Selected)
         {
             searchBox.Text = I18n.Placeholder_Search();
-            forSaleAll?.RemoveAll(sale => !shopMenu.itemPriceAndStock.ContainsKey(sale));
-            shopMenu.forSale = forSaleAll;
-            forSaleAll = null;
             searchBox.Selected = false;
-            shopMenu.currentItemIndex = 0;
-            Patches.setScrollBarToCurrentIndexMethod?.Invoke(shopMenu, []);
+        }
+        if (forSaleAll != null)
+        {
+            forSaleAll?.RemoveAll(sale => !Shop.itemPriceAndStock.ContainsKey(sale));
+            if (categoryCurrent == NO_CATEGORY)
+            {
+                Shop.forSale = forSaleAll;
+                forSaleAll = null;
+                Shop.currentItemIndex = 0;
+                Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
+            }
+            else
+            {
+                DoSearch();
+            }
         }
     }
 
     internal void OnLeftClickPrefix(int x, int y)
     {
+        if (Shop == null)
+            return;
+
         if (searchBoxCC.containsPoint(x, y))
         {
-            Activate();
+            SearchActivate();
+        }
+        else
+        {
+            int? clickedCategory = null;
+            foreach ((int category, ClickableTextureComponent cct) in categoryTabs)
+            {
+                if (cct.bounds.Contains(x, y))
+                {
+                    cct.bounds.Y += TAB_OFFSET;
+                    clickedCategory = category;
+                    break;
+                }
+            }
+            if (clickedCategory != null)
+            {
+                if (categoryTabs.TryGetValue(categoryCurrent, out ClickableTextureComponent? cctCurr))
+                {
+                    cctCurr.bounds.Y -= TAB_OFFSET;
+                }
+                int prevCategory = categoryCurrent;
+                categoryCurrent = (int)clickedCategory;
+                if (categoryCurrent != prevCategory)
+                {
+                    forSaleAll ??= Shop.forSale;
+                    DoSearch();
+                }
+            }
         }
     }
 
     internal void OnLeftClickPostfix(int x, int y)
     {
-        if (!searchBoxCC.containsPoint(x, y) && !shopMenu.forSaleButtons.Any(fsb => fsb.bounds.Contains(x, y)))
+        if (Shop == null)
+            return;
+
+        if (
+            !searchBoxCC.containsPoint(x, y)
+            && !Shop.forSaleButtons.Any(fsb => fsb.bounds.Contains(x, y))
+            && !categoryTabs.Values.Any(cct => cct.bounds.Contains(x, y))
+        )
         {
-            Deactivate();
+            SearchDeactivate();
         }
     }
 
     public void Draw(SpriteBatch b)
     {
         searchBox.Draw(b);
+        foreach (ClickableTextureComponent cct in categoryTabs.Values)
+        {
+            cct.draw(b);
+            cct.scale = 2f;
+            cct.drawItem(b, yOffset: 4);
+            cct.scale = cct.baseScale;
+        }
     }
 }

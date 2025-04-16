@@ -13,8 +13,8 @@ internal sealed class ModConfig
     /// <summary>Number of items to buy when using Shift+Ctrl.</summary>
     public int StackCount { get; set; } = 25;
 
-    /// <summary>Enable search box.</summary>
-    public bool EnableSearch { get; set; } = false;
+    /// <summary>Enable search box and filter tabs.</summary>
+    public bool EnableSearchAndFilters { get; set; } = true;
 
     /// <summary>Restore default config values</summary>
     private void Reset()
@@ -32,7 +32,7 @@ internal sealed class ModConfig
             "spacechase0.GenericModConfigMenu"
         );
         if (!Patches.Success_Search)
-            EnableSearch = false;
+            EnableSearchAndFilters = false;
         if (GMCM == null || !(Patches.Success_Grid || Patches.Success_StackCount || Patches.Success_Search))
         {
             helper.WriteConfig(this);
@@ -87,8 +87,8 @@ internal sealed class ModConfig
         {
             GMCM.AddBoolOption(
                 mod,
-                getValue: () => EnableSearch,
-                setValue: (value) => EnableSearch = value,
+                getValue: () => EnableSearchAndFilters,
+                setValue: (value) => EnableSearchAndFilters = value,
                 name: I18n.Config_EnableSearch_Name,
                 tooltip: I18n.Config_EnableSearch_Description
             );

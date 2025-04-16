@@ -8,7 +8,7 @@
   "config.StackCount.name": "Stack Count on Shift+Ctrl",
   "config.StackCount.description": "Number of items to buy when using Shift+Ctrl (vanilla 25).",
   "config.EnableSearch.name": "Enable Search",
-  "config.EnableSearch.description": "Enable search box (below the currency display).",
+  "config.EnableSearch.description": "Enable search box (under the currency display).",
   // ui
   "placeholder.search": "Search..."
 }

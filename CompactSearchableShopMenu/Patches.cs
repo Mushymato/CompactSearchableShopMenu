@@ -19,7 +19,7 @@ internal static class Patches
     private static readonly PerScreen<int> perRowR = new();
     private static int PerRowR => perRowR.Value;
 
-    private static void SetPerRow(int perRowV, int forSaleCount)
+    internal static void SetPerRow(int perRowV, int forSaleCount)
     {
         perRow.Value = perRowV;
         int remainder = forSaleCount % perRowV;
@@ -31,6 +31,16 @@ internal static class Patches
     }
 
     private static readonly PerScreen<SearchContext?> searchCtx = new();
+    private static SearchContext? SearchContext
+    {
+        get => searchCtx.Value;
+        set
+        {
+            searchCtx.Value?.Dispose();
+            searchCtx.Value = value;
+        }
+    }
+
     internal static MethodInfo setScrollBarToCurrentIndexMethod = AccessTools.DeclaredMethod(
         typeof(ShopMenu),
         "setScrollBarToCurrentIndex"
@@ -47,7 +57,7 @@ internal static class Patches
     {
         perRow.Value = 3;
         perRowR.Value = 4;
-        help.Events.Display.MenuChanged += OnMenuChanged;
+        help.Events.Player.Warped += OnWarped;
 
         Harmony harmony = new(ModEntry.ModId);
         try
@@ -99,6 +109,7 @@ internal static class Patches
             );
             harmony.Patch(
                 original: setScrollBarToCurrentIndexMethod,
+                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_setScrollBarToCurrentIndex_Prefix)),
                 transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
             );
             harmony.Patch(
@@ -166,6 +177,10 @@ internal static class Patches
                 prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveKeyPress_Prefix))
             );
             harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveGamePadButton)),
+                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveGamePadButton_Prefix))
+            );
+            harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.drawCurrency)),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_drawCurrency_Prefix))
             );
@@ -197,33 +212,34 @@ internal static class Patches
         }
     }
 
-    private static void OnMenuChanged(object? sender, MenuChangedEventArgs e)
+    private static void ShopMenu_setScrollBarToCurrentIndex_Prefix(ShopMenu __instance)
     {
-        if (searchCtx.Value != null && e.NewMenu == null)
-        {
-            searchCtx.Value.Dispose();
-            searchCtx.Value = null;
-        }
+        SetPerRow(perRow.Value, __instance.forSale.Count);
+    }
+
+    private static void OnWarped(object? sender, WarpedEventArgs e)
+    {
+        // a silly event to dispose search context on, for lookup anything reasons
+        SearchContext = null;
     }
 
     private static void ShopMenu_Initialize_Postfix(ShopMenu __instance)
     {
-        if (searchCtx.Value != null)
+        SearchContext = null;
+        if (ModEntry.Config.EnableSearchAndFilters)
         {
-            searchCtx.Value.Dispose();
-            searchCtx.Value = null;
+            SearchContext = new(__instance);
         }
-        searchCtx.Value = new(__instance);
     }
 
     private static void ShopMenu_gameWindowSizeChanged_Postfix()
     {
-        searchCtx.Value?.Reposition();
+        SearchContext?.Reposition();
     }
 
     private static void ShopMenu_receiveLeftClick_Prefix(int x, int y)
     {
-        searchCtx.Value?.OnLeftClickPrefix(x, y);
+        SearchContext?.OnLeftClickPrefix(x, y);
     }
 
     private static void ShopMenu_receiveLeftClick_Postfix(int x, int y)
@@ -234,6 +250,11 @@ internal static class Patches
     private static void ShopMenu_receiveKeyPress_Prefix(Keys key)
     {
         searchCtx.Value?.OnKeyPress(key);
+    }
+
+    private static bool ShopMenu_receiveGamePadButton_Prefix(Buttons button)
+    {
+        return searchCtx.Value?.OnGamePadButton(button) ?? true;
     }
 
     private static void ShopMenu_drawCurrency_Prefix(SpriteBatch b)
@@ -432,44 +453,6 @@ internal static class Patches
         return matcher.Instructions();
     }
 
-    public static void DrawDisplayName(
-        SpriteBatch b,
-        string s,
-        int x,
-        int y,
-        int characterPosition,
-        int width,
-        int height,
-        float alpha,
-        float layerDepth,
-        bool junimoText,
-        int drawBGScroll,
-        string placeHolderScrollWidthText,
-        Color? color,
-        SpriteText.ScrollTextAlignment scroll_text_alignment
-    )
-    {
-        if (perRow.Value <= 1)
-        {
-            SpriteText.drawString(
-                b,
-                s,
-                x,
-                y,
-                characterPosition,
-                width,
-                height,
-                alpha,
-                layerDepth,
-                junimoText,
-                drawBGScroll,
-                placeHolderScrollWidthText,
-                color,
-                scroll_text_alignment
-            );
-        }
-    }
-
     public static void DrawShadowOrBoldText(
         SpriteBatch b,
         string s,
@@ -502,6 +485,49 @@ internal static class Patches
                 txtColor * 0.5f,
                 layerDepth: layerDepth
             );
+        }
+    }
+
+    public static void DrawDisplayName(
+        SpriteBatch b,
+        string s,
+        int x,
+        int y,
+        int characterPosition,
+        int width,
+        int height,
+        float alpha,
+        float layerDepth,
+        bool junimoText,
+        int drawBGScroll,
+        string placeHolderScrollWidthText,
+        Color? color,
+        SpriteText.ScrollTextAlignment scroll_text_alignment,
+        ISalable salable
+    )
+    {
+        if (perRow.Value <= 1)
+        {
+            SpriteText.drawString(
+                b,
+                s,
+                x,
+                y,
+                characterPosition,
+                width,
+                height,
+                alpha,
+                layerDepth,
+                junimoText,
+                drawBGScroll,
+                placeHolderScrollWidthText,
+                color,
+                scroll_text_alignment
+            );
+        }
+        else if (salable.Stack > 1)
+        {
+            DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(x, y), color, alpha, layerDepth);
         }
     }
 
@@ -692,7 +718,7 @@ internal static class Patches
             Utility.drawWithShadow(
                 b,
                 texture,
-                new Vector2(component.bounds.Right - stringSize.X - 20 - sourceRect.Width * 2, component.bounds.Y + 60),
+                new Vector2(component.bounds.Right - stringSize.X - 24 - sourceRect.Width * 2, component.bounds.Y + 60),
                 sourceRect,
                 color,
                 rotation,
@@ -729,14 +755,30 @@ internal static class Patches
         );
         CodeInstruction ldlocClickableComponent = matcher.Instruction.Clone();
 
+        // IL_0242: ldloc.s 6
+        // IL_0244: callvirt instance bool StardewValley.ISalable::ShouldDrawIcon()
+        // IL_0249: brfalse IL_04e7
+        matcher.MatchStartForward(
+            [
+                new(inst => inst.IsLdloc()),
+                new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.ShouldDrawIcon))),
+                new(OpCodes.Brfalse),
+            ]
+        );
+        CodeInstruction ldlocSalable = matcher.Instruction.Clone();
+
         // display name text
-        matcher.MatchStartForward(
-            [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-        );
+        matcher
+            .MatchStartForward(
+                [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
+            )
+            .InsertAndAdvance([ldlocSalable.Clone()]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayName));
-        matcher.MatchStartForward(
-            [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-        );
+        matcher
+            .MatchStartForward(
+                [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
+            )
+            .InsertAndAdvance([ldlocSalable.Clone()]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayName));
 
         // price text + icon

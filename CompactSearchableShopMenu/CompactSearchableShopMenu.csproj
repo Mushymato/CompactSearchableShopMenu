@@ -13,9 +13,9 @@
   <PropertyGroup>
     <Name>Compact Searchable Shop Menu</Name>
     <Authors>mushymato</Authors>
-    <Description>Grid shape shop menu that you can search.</Description>
+    <Description>Compact and searchable shop menu for people with 2147483647 mods.</Description>
     <UniqueId>mushymato.CompactSearchableShopMenu</UniqueId>
-    <UpdateKeys>Nexus:???</UpdateKeys>
+    <UpdateKeys>Nexus:33271</UpdateKeys>
     <Version>0.2.0</Version>
     <MinimumApiVersion_Behavior>UpdateFull</MinimumApiVersion_Behavior>
     <MinimumGameVersion_Behavior>UpdateFull</MinimumGameVersion_Behavior>
