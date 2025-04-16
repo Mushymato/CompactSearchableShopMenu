@@ -17,7 +17,8 @@ internal static class Patches
 {
     private static readonly PerScreen<int> perRow = new();
     private static readonly PerScreen<int> perRowR = new();
-    private static int PerRowR => perRowR.Value;
+    internal static int PerRowV => perRow.Value;
+    internal static int PerRowR => perRowR.Value;
 
     internal static void SetPerRow(int perRowV, int forSaleCount)
     {
@@ -468,7 +469,7 @@ internal static class Patches
             Utility.drawTextWithShadow(
                 b,
                 s,
-               spriteFont ?? Game1.dialogueFont,
+                spriteFont ?? Game1.dialogueFont,
                 position,
                 Game1.textColor * alpha,
                 layerDepth: layerDepth

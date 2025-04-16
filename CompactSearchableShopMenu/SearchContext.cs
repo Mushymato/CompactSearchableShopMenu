@@ -215,13 +215,13 @@ internal sealed class SearchContext : IDisposable
         }
         if (forSaleAll != null)
         {
-            forSaleAll.RemoveAll(frs => !Shop.itemPriceAndStock.ContainsKey(frs));
             if (categoryCurrent == NO_CATEGORY)
             {
+                // Patches.SetPerRow(Patches.PerRowV, forSaleAll.Count);
+                Shop.currentItemIndex = Math.Min(Shop.currentItemIndex, forSaleAll.Count - Patches.PerRowR);
+                Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
                 Shop.forSale = forSaleAll;
                 forSaleAll = null;
-                Shop.currentItemIndex = 0;
-                Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
             }
             else
             {
@@ -270,8 +270,11 @@ internal sealed class SearchContext : IDisposable
     internal void OnLeftClickPostfix(int x, int y)
     {
         if (Shop == null)
+        {
+            forSaleAll = null;
             return;
-
+        }
+        forSaleAll?.RemoveWhere(fsa => !Shop.itemPriceAndStock.ContainsKey(fsa));
         if (
             !searchBoxCC.containsPoint(x, y)
             && !Shop.forSaleButtons.Any(fsb => fsb.containsPoint(x, y))
