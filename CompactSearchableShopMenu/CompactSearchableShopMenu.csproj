@@ -11,10 +11,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Name>Shop Menu Overhaul</Name>
+    <Name>Compact Searchable Shop Menu</Name>
     <Authors>mushymato</Authors>
-    <Description>Turn shop menu into a grid.</Description>
-    <UniqueId>mushymato.ShopMenuOverhaul</UniqueId>
+    <Description>Grid shape shop menu that you can search.</Description>
+    <UniqueId>mushymato.CompactSearchableShopMenu</UniqueId>
     <UpdateKeys>Nexus:???</UpdateKeys>
     <Version>0.2.0</Version>
     <MinimumApiVersion_Behavior>UpdateFull</MinimumApiVersion_Behavior>

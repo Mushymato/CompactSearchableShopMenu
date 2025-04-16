@@ -1,7 +1,7 @@
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 
-namespace ShopMenuOverhaul;
+namespace CompactSearchableShopMenu;
 
 public class ModEntry : Mod
 {

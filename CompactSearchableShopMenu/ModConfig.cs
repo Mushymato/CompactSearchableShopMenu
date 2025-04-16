@@ -1,6 +1,6 @@
 using StardewModdingAPI;
 
-namespace ShopMenuOverhaul;
+namespace CompactSearchableShopMenu;
 
 internal sealed class ModConfig
 {

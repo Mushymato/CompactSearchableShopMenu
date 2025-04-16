@@ -1,3 +1,3 @@
-# ShopMenuOverhaul
+# CompactSearchableShopMenu
 
 New mod.

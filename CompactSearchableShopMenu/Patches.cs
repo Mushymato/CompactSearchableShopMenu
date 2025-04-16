@@ -8,7 +8,7 @@ using StardewValley;
 using StardewValley.BellsAndWhistles;
 using StardewValley.Menus;
 
-namespace ShopMenuOverhaul;
+namespace CompactSearchableShopMenu;
 
 internal static class Patches
 {
@@ -411,7 +411,7 @@ internal static class Patches
                 Game1.dialogueFont,
                 position,
                 txtColor,
-                txtColor,
+                txtColor * 0.5f,
                 layerDepth: layerDepth
             );
         }
