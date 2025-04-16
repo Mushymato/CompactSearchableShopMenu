@@ -31,6 +31,8 @@ internal sealed class SearchContext : IDisposable
     private readonly List<int> categoryTabsOrder = [];
     private int categoryCurrent = NO_CATEGORY;
 
+    private List<ISalable>? forSaleAll = null;
+
     internal SearchContext(ShopMenu shopMenu)
     {
         this.shopMenu = new(shopMenu);
@@ -118,6 +120,7 @@ internal sealed class SearchContext : IDisposable
 
     public void Dispose()
     {
+        forSaleAll = null;
         categoryTabsOrder.Clear();
         categoryTabs.Clear();
         searchBox.Selected = false;
@@ -174,7 +177,8 @@ internal sealed class SearchContext : IDisposable
         if (Shop == null)
             return;
 
-        IEnumerable<ISalable> forSale = Shop.itemPriceAndStock.Keys;
+        forSaleAll ??= Shop.forSale;
+        IEnumerable<ISalable> forSale = forSaleAll;
         if (categoryCurrent != NO_CATEGORY)
         {
             forSale = forSale.Where(fs => fs is Item item && item.Category == categoryCurrent);
@@ -211,15 +215,20 @@ internal sealed class SearchContext : IDisposable
             searchBox.Text = I18n.Placeholder_Search();
             searchBox.Selected = false;
         }
-        if (categoryCurrent == NO_CATEGORY)
+        if (forSaleAll != null)
         {
-            Shop.forSale = Shop.itemPriceAndStock.Keys.ToList();
-            Shop.currentItemIndex = 0;
-            Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
-        }
-        else
-        {
-            DoSearch();
+            forSaleAll.RemoveAll(frs => !Shop.itemPriceAndStock.ContainsKey(frs));
+            if (categoryCurrent == NO_CATEGORY)
+            {
+                Shop.forSale = forSaleAll;
+                forSaleAll = null;
+                Shop.currentItemIndex = 0;
+                Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
+            }
+            else
+            {
+                DoSearch();
+            }
         }
     }
 
