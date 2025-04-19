@@ -1,3 +1,6 @@
+global using SObject = StardewValley.Object;
+using CompactSearchableShopMenu.Integration;
+using HarmonyLib;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 
@@ -12,21 +15,23 @@ public class ModEntry : Mod
 #endif
     private static IMonitor? mon;
     internal static ModConfig Config = null!;
-    internal static string ModId = null!;
+
+    internal static bool HasMod_BiggerBackpack = false;
 
     public override void Entry(IModHelper helper)
     {
         I18n.Init(helper.Translation);
         mon = Monitor;
-        ModId = ModManifest.UniqueID;
         Config = Helper.ReadConfig<ModConfig>();
         helper.Events.GameLoop.GameLaunched += OnGameLaunched;
-        Patches.Patch(helper);
+        Harmony harmony = new(ModManifest.UniqueID);
+        Patches.Patch(helper, harmony);
     }
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
         Config.Register(Helper, ModManifest);
+        HasMod_BiggerBackpack = Helper.ModRegistry.IsLoaded("spacechase0.BiggerBackpack");
     }
 
     /// <summary>SMAPI static monitor Log wrapper</summary>

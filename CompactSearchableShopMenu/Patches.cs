@@ -54,13 +54,13 @@ internal static class Patches
     internal static bool Success_StackCount = true;
     internal static bool Success_Search = true;
 
-    internal static void Patch(IModHelper help)
+    internal static void Patch(IModHelper help, Harmony harmony)
     {
         perRow.Value = 3;
         perRowR.Value = 4;
         help.Events.Player.Warped += OnWarped;
+        help.Events.Input.ButtonsChanged += OnButtonsChanged;
 
-        Harmony harmony = new(ModEntry.ModId);
         try
         {
             // stop rebuilding neighbor ids all the time
@@ -131,6 +131,9 @@ internal static class Patches
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.draw)),
                 transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_draw_Transpiler_strong))
+                {
+                    priority = Priority.First,
+                }
             );
         }
         catch (Exception ex)
@@ -144,6 +147,9 @@ internal static class Patches
                 harmony.Patch(
                     original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.draw)),
                     transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_draw_Transpiler_weak))
+                    {
+                        priority = Priority.First,
+                    }
                 );
             }
             catch (Exception ex2)
@@ -213,6 +219,14 @@ internal static class Patches
         }
     }
 
+    private static void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
+    {
+        if (e.Pressed.Contains(SButton.LeftStick))
+        {
+            SearchContext?.GamepadToggleSearch();
+        }
+    }
+
     private static void ShopMenu_setScrollBarToCurrentIndex_Prefix(ShopMenu __instance)
     {
         SetPerRow(perRow.Value, __instance.forSale.Count);
@@ -229,7 +243,15 @@ internal static class Patches
         SearchContext = null;
         if (ModEntry.Config.EnableSearchAndFilters)
         {
-            SearchContext = new(__instance);
+            try
+            {
+                SearchContext = new(__instance);
+            }
+            catch
+            {
+                ModEntry.Log($"Failed to initialize search context for {__instance.ShopId}.", LogLevel.Warn);
+                SearchContext = null;
+            }
         }
     }
 
@@ -245,22 +267,22 @@ internal static class Patches
 
     private static void ShopMenu_receiveLeftClick_Postfix(int x, int y)
     {
-        searchCtx.Value?.OnLeftClickPostfix(x, y);
+        SearchContext?.OnLeftClickPostfix(x, y);
     }
 
-    private static void ShopMenu_receiveKeyPress_Prefix(Keys key)
+    private static bool ShopMenu_receiveKeyPress_Prefix(Keys key)
     {
-        searchCtx.Value?.OnKeyPress(key);
+        return SearchContext?.OnKeyPress(key) ?? true;
     }
 
     private static bool ShopMenu_receiveGamePadButton_Prefix(Buttons button)
     {
-        return searchCtx.Value?.OnGamePadButton(button) ?? true;
+        return SearchContext?.OnGamePadButton(button) ?? true;
     }
 
     private static void ShopMenu_drawCurrency_Prefix(SpriteBatch b)
     {
-        searchCtx.Value?.Draw(b);
+        SearchContext?.Draw(b);
     }
 
     private static int LeftClickHeldIndex(int originalValue, int y, Rectangle scrollBarRunner, ShopMenu shopMenu)
@@ -528,18 +550,17 @@ internal static class Patches
             );
             return;
         }
-        int xOffset = x;
         if (!salable.ShouldDrawIcon())
         {
             Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
-            xOffset -= 24;
+            x -= 24;
             y += (int)(stringSize.Y * 2 / 3);
-            DrawShadowOrBoldText(b, s, new Vector2(xOffset, y), color, alpha, layerDepth, Game1.smallFont);
-            xOffset += (int)stringSize.X;
+            DrawShadowOrBoldText(b, s, new Vector2(x, y), color, alpha, layerDepth, Game1.smallFont);
+            x += (int)stringSize.X;
         }
         if (salable.Stack > 1)
         {
-            DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(xOffset, y), color, alpha, layerDepth);
+            DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(x, y), color, alpha, layerDepth);
         }
     }
 
@@ -583,7 +604,7 @@ internal static class Patches
         else
         {
             Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
-            Vector2 position = new(component.bounds.Right - stringSize.X - 30, component.bounds.Y + 12);
+            Vector2 position = new(component.bounds.Right - stringSize.X - 32, component.bounds.Top + 12);
             DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth);
         }
     }
@@ -628,7 +649,7 @@ internal static class Patches
             Utility.drawWithShadow(
                 b,
                 texture,
-                new Vector2(component.bounds.Right - 36, component.bounds.Y + 24),
+                new Vector2(component.bounds.Right - 36, component.bounds.Top + 24),
                 sourceRect,
                 color,
                 rotation,
@@ -683,7 +704,8 @@ internal static class Patches
         else
         {
             Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
-            Vector2 position = new(component.bounds.Right - stringSize.X - 20, component.bounds.Y + stringSize.Y);
+            Vector2 position =
+                new(component.bounds.Right - stringSize.X - 24, component.bounds.Bottom - stringSize.Y - 8);
             DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth);
         }
     }
@@ -730,7 +752,10 @@ internal static class Patches
             Utility.drawWithShadow(
                 b,
                 texture,
-                new Vector2(component.bounds.Right - stringSize.X - 24 - sourceRect.Width * 2, component.bounds.Y + 60),
+                new Vector2(
+                    component.bounds.Right - stringSize.X - 24 - sourceRect.Width * 2,
+                    component.bounds.Bottom - sourceRect.Height * 2 - 16
+                ),
                 sourceRect,
                 color,
                 rotation,

@@ -1,4 +1,6 @@
+using System.Numerics;
 using StardewModdingAPI;
+using StardewValley;
 
 namespace CompactSearchableShopMenu;
 
@@ -13,14 +15,36 @@ internal sealed class ModConfig
     /// <summary>Number of items to buy when using Shift+Ctrl.</summary>
     public int StackCount { get; set; } = 25;
 
-    /// <summary>Enable search box and filter tabs.</summary>
+    /// <summary>Enable search box and filter tabs in general.</summary>
     public bool EnableSearchAndFilters { get; set; } = true;
+
+    /// <summary>Enable search box.</summary>
+    public bool EnableSearch { get; set; } = true;
+
+    /// <summary>Enable search box.</summary>
+    public Vector2 SearchBoxOffset { get; set; } = Vector2.Zero;
+
+    /// <summary>Enable filter tabs for categories.</summary>
+    public bool EnableTab_Category { get; set; } = true;
+
+    /// <summary>Enable filter tabs that separate seeds into crop, fruit tree seed, and custom bush.</summary>
+    public bool EnableTab_DetailedSeeds { get; set; } = true;
+
+    /// <summary>Enable filter tabs for recipe.</summary>
+    public bool EnableTab_Recipes { get; set; } = true;
 
     /// <summary>Restore default config values</summary>
     private void Reset()
     {
         ShopItemPerRow = 4;
         DresserItemPerRow = 9;
+        EnableSearchAndFilters = true;
+        EnableSearch = true;
+        SearchBoxOffset = Vector2.Zero;
+        // tabs
+        EnableTab_Category = true;
+        EnableTab_DetailedSeeds = true;
+        EnableTab_Recipes = true;
     }
 
     /// <summary>Add mod config to GMCM if available</summary>
@@ -58,7 +82,7 @@ internal sealed class ModConfig
                 getValue: () => ShopItemPerRow,
                 setValue: (value) => ShopItemPerRow = value,
                 name: I18n.Config_ShopItemPerRow_Name,
-                tooltip: I18n.Config_DresserItemPerRow_Description,
+                tooltip: I18n.Config_ShopItemPerRow_Description,
                 min: 1,
                 max: 9
             );
@@ -92,7 +116,52 @@ internal sealed class ModConfig
                 name: I18n.Config_EnableSearchAndFilters_Name,
                 tooltip: I18n.Config_EnableSearchAndFilters_Description
             );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableSearch,
+                setValue: (value) => EnableSearch = value,
+                name: I18n.Config_EnableSearch_Name,
+                tooltip: I18n.Config_EnableSearch_Description
+            );
+            GMCM.AddTextOption(
+                mod,
+                getValue: () => $"{SearchBoxOffset.X} {SearchBoxOffset.Y}",
+                setValue: (value) =>
+                {
+                    string[] pos = value.Split(' ');
+                    if (
+                        pos.Length == 2
+                        && int.TryParse(pos[0].Trim(), out int posX)
+                        && int.TryParse(pos[1].Trim(), out int posY)
+                    )
+                        SearchBoxOffset = new(posX, posY);
+                    else
+                        SearchBoxOffset = Vector2.Zero;
+                },
+                name: I18n.Config_SearchBoxOffset_Name,
+                tooltip: I18n.Config_SearchBoxOffset_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableTab_Category,
+                setValue: (value) => EnableTab_Category = value,
+                name: I18n.Config_EnableTab_Category_Name,
+                tooltip: I18n.Config_EnableTab_Category_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableTab_DetailedSeeds,
+                setValue: (value) => EnableTab_DetailedSeeds = value,
+                name: I18n.Config_EnableTab_DetailedSeeds_Name,
+                tooltip: I18n.Config_EnableTab_DetailedSeeds_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableTab_Recipes,
+                setValue: (value) => EnableTab_Recipes = value,
+                name: I18n.Config_EnableTab_Recipes_Name,
+                tooltip: I18n.Config_EnableTab_Recipes_Description
+            );
         }
-        else { }
     }
 }

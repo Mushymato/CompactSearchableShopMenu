@@ -8,7 +8,17 @@
   "config.StackCount.name": "Stack Count on Shift+Ctrl",
   "config.StackCount.description": "Number of items to buy when using Shift+Ctrl (vanilla 25).",
   "config.EnableSearchAndFilters.name": "Enable Search and Filters",
-  "config.EnableSearchAndFilters.description": "Enable search box and category tabs (if the shop does not already have side tabs).",
+  "config.EnableSearchAndFilters.description": "Enable search box and category tabs (if the shop does not already have side tabs), this setting overrides the following ones.",
+  "config.EnableSearch.name": "Enable Search",
+  "config.EnableSearch.description": "Enable search box.",
+  "config.SearchBoxOffset.name": "Search Box Offset",
+  "config.SearchBoxOffset.description": "Adjust the search box's position (default 0 0).",
+  "config.EnableTab.Category.name": "Enable Tabs: Categories",
+  "config.EnableTab.Category.description": "Enable tabs based on item categories.",
+  "config.EnableTab.DetailedSeeds.name": "Enable Tabs: Detailed Seeds",
+  "config.EnableTab.DetailedSeeds.description": "Enable separate tabs for crop/tree/bush seeds.",
+  "config.EnableTab.Recipes.name": "Enable Tab: Recipes",
+  "config.EnableTab.Recipes.description": "Enable tab for recipes.",
   // ui
   "placeholder.search": "Search..."
 }

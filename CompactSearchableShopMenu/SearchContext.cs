@@ -7,10 +7,25 @@ using StardewValley.Menus;
 
 namespace CompactSearchableShopMenu;
 
+internal sealed record FilterTab(ClickableTextureComponent CTC, Func<ISalable, bool> Filter);
+
 internal sealed class SearchContext : IDisposable
 {
-    internal const int NO_CATEGORY = -9999;
-    internal static readonly Rectangle tabSourceRect = new(16, 368, 16, 16);
+    internal const string NO_FILTER = "NO_FILTER";
+    internal const string CATEGORY_PREFIX = "category_";
+    internal const string RECIPES = "recipes";
+    internal static readonly string CATEGORY_SEEDS = string.Concat(CATEGORY_PREFIX, SObject.SeedsCategory.ToString());
+    internal const string SEEDS_CROP = "seeds_crop";
+    internal const string SEEDS_TREE = "seeds_tree";
+    internal const string SEEDS_BUSH = "seeds_bush";
+
+    internal static readonly Rectangle cursorsTabsSourceRect = new(16, 368, 16, 16);
+    internal static readonly Rectangle recipeSourceRect = Game1.getSourceRectForStandardTileSheet(
+        Game1.objectSpriteSheet,
+        451,
+        16,
+        16
+    );
     internal const int TAB_OFFSET = 8;
 
     private readonly WeakReference<ShopMenu> shopMenu;
@@ -23,68 +38,214 @@ internal sealed class SearchContext : IDisposable
             return null;
         }
     }
-    private readonly TextBox searchBox;
+    private readonly TextBox? searchBox;
     private readonly ClickableComponent searchBoxCC;
-    private readonly Dictionary<int, ClickableTextureComponent> categoryTabs = [];
-    private readonly List<int> categoryTabsOrder = [];
-    private int categoryCurrent = NO_CATEGORY;
+    private readonly Texture2D tabTexture;
+    private readonly Rectangle tabSourceRect;
+    private readonly Dictionary<string, FilterTab> filterTabs = [];
+    private readonly List<string> filterTabsOrder = [];
+    private string filterCurrent = NO_FILTER;
 
     private List<ISalable>? forSaleAll = null;
+
+    // private readonly HashSet<string>? cropItemIds = null;
+    // private readonly HashSet<string>? fruitTreesItemIds = null;
+    // private readonly HashSet<string>? wildTreeItemIds = null;
+    // private readonly HashSet<string>? customBushItemIds = null;
+
+    // Filter functions
+
+    private static bool Filter_Nop(ISalable salable) => throw new NotImplementedException();
+
+    private static bool Filter_Recipe(ISalable salable) => salable.IsRecipe;
+
+    private static bool Filter_Category(int category, ISalable salable) =>
+        ShouldIncludeRecipe(salable) && salable is Item item && item.Category == category;
+
+    private static bool ShouldIncludeRecipe(ISalable salable)
+    {
+        if (ModEntry.Config.EnableTab_Recipes)
+            return !salable.IsRecipe;
+        return true;
+    }
+
+    // private bool Filter_SeedCrop(ISalable salable) =>
+    //     ShouldIncludeRecipe(salable) && salable is Item item && (cropItemIds?.Contains(item.ItemId) ?? false);
+
+    // private bool Filter_SeedTree(ISalable salable) =>
+    //     ShouldIncludeRecipe(salable)
+    //     && salable is Item item
+    //     && ((fruitTreesItemIds?.Contains(item.ItemId) ?? false) || (wildTreeItemIds?.Contains(item.ItemId) ?? false));
+
+    // private bool Filter_SeedBush(ISalable salable) =>
+    //     ShouldIncludeRecipe(salable)
+    //     && salable is Item item
+    //     && (customBushItemIds?.Contains(item.QualifiedItemId) ?? false);
+    private static bool Filter_SeedCrop(ISalable salable) =>
+        ShouldIncludeRecipe(salable)
+        && salable is SObject obj
+        && obj.Category == SObject.SeedsCategory
+        && !(obj.IsTeaSapling() || obj.IsWildTreeSapling() || obj.IsFruitTreeSapling());
+
+    private static bool Filter_SeedTree(ISalable salable) =>
+        ShouldIncludeRecipe(salable) && salable is SObject obj && (obj.IsWildTreeSapling() || obj.IsFruitTreeSapling());
+
+    private static bool Filter_SeedBush(ISalable salable) =>
+        ShouldIncludeRecipe(salable) && salable is SObject obj && obj.IsTeaSapling();
 
     internal SearchContext(ShopMenu shopMenu)
     {
         this.shopMenu = new(shopMenu);
-        searchBox = new(Game1.content.Load<Texture2D>("LooseSprites\\textBox"), null, Game1.smallFont, Game1.textColor);
-        searchBox.OnEnterPressed += OnEnter;
-        searchBox.Text = I18n.Placeholder_Search();
+        if (Shop == null)
+            throw new InvalidDataException();
+
+        tabTexture = Game1.mouseCursors;
+        tabSourceRect = cursorsTabsSourceRect;
+
         searchBoxCC = new(Rectangle.Empty, "SEARCH");
+        if (ModEntry.Config.EnableSearch)
+        {
+            searchBox = new(
+                Game1.content.Load<Texture2D>("LooseSprites\\textBox"),
+                null,
+                Game1.smallFont,
+                Game1.textColor
+            );
+            searchBox.OnEnterPressed += OnEnter;
+            searchBox.Text = I18n.Placeholder_Search();
+        }
 
         if (!shopMenu.tabButtons.Any())
         {
-            foreach (var sale in Shop!.forSale)
+            if (ModEntry.Config.EnableTab_Category)
             {
-                if (sale is Item item && !categoryTabs.ContainsKey(item.Category) && !item.IsRecipe)
+                foreach (var sale in Shop.forSale)
                 {
-                    string categoryName = StardewValley.Object.GetCategoryDisplayName(item.Category);
-                    categoryTabs[item.Category] = new(
-                        item.Category.ToString(),
-                        Rectangle.Empty,
-                        "",
-                        categoryName,
-                        Game1.mouseCursors,
-                        tabSourceRect,
-                        4f,
-                        false
-                    )
+                    if (sale is not Item item || item.IsRecipe)
+                        continue;
+                    int category = item.Category;
+                    string categoryKey = string.Concat(CATEGORY_PREFIX, item.Category.ToString());
+                    if (!filterTabs.ContainsKey(categoryKey))
                     {
-                        item = item,
-                    };
+                        filterTabs[categoryKey] = new(
+                            new(
+                                item.Category.ToString(),
+                                Rectangle.Empty,
+                                "",
+                                categoryKey,
+                                tabTexture,
+                                tabSourceRect,
+                                4f,
+                                false
+                            )
+                            {
+                                item = item,
+                            },
+                            (salable) => Filter_Category(category, salable)
+                        );
+                    }
+                }
+                filterTabsOrder.AddRange(filterTabs.Keys);
+            }
+
+            if (ModEntry.Config.EnableTab_DetailedSeeds)
+            {
+                if (filterTabs.ContainsKey(CATEGORY_SEEDS))
+                {
+                    filterTabs.Remove(CATEGORY_SEEDS);
+                    filterTabsOrder.Remove(CATEGORY_SEEDS);
+                }
+                // bush
+                if (Shop.forSale.FirstOrDefault(Filter_SeedBush) is Item seedBushItem)
+                {
+                    filterTabs[SEEDS_BUSH] = new(
+                        new(RECIPES, Rectangle.Empty, "", SEEDS_TREE, tabTexture, tabSourceRect, 4f, false)
+                        {
+                            item = seedBushItem,
+                        },
+                        Filter_SeedBush
+                    );
+                    filterTabsOrder.Insert(0, SEEDS_BUSH);
+                }
+                // tree
+                if (Shop.forSale.FirstOrDefault(Filter_SeedTree) is Item seedTreeItem)
+                {
+                    filterTabs[SEEDS_TREE] = new(
+                        new(RECIPES, Rectangle.Empty, "", SEEDS_TREE, tabTexture, tabSourceRect, 4f, false)
+                        {
+                            item = seedTreeItem,
+                        },
+                        Filter_SeedTree
+                    );
+                    filterTabsOrder.Insert(0, SEEDS_TREE);
+                }
+                // crop
+                if (Shop.forSale.FirstOrDefault(Filter_SeedCrop) is Item seedCropItem)
+                {
+                    filterTabs[SEEDS_CROP] = new(
+                        new(RECIPES, Rectangle.Empty, "", SEEDS_CROP, tabTexture, tabSourceRect, 4f, false)
+                        {
+                            item = seedCropItem,
+                        },
+                        Filter_SeedCrop
+                    );
+                    filterTabsOrder.Insert(0, SEEDS_CROP);
                 }
             }
-            if (categoryTabs.Count > 1)
+
+            if (ModEntry.Config.EnableTab_Recipes)
             {
-                categoryTabsOrder.Add(NO_CATEGORY);
-                categoryTabsOrder.AddRange(categoryTabs.Keys);
-                categoryTabs[NO_CATEGORY] = new(
-                    NO_CATEGORY.ToString(),
-                    Rectangle.Empty,
-                    "",
-                    "NO_CATEGORY",
-                    Game1.mouseCursors,
-                    tabSourceRect,
-                    4f,
-                    false
+                if (Shop.forSale.FirstOrDefault(Filter_Recipe) is Item recipeItem)
+                {
+                    filterTabs[RECIPES] = new(
+                        new(RECIPES, Rectangle.Empty, "", RECIPES, tabTexture, tabSourceRect, 4f, false)
+                        {
+                            item = recipeItem,
+                        },
+                        Filter_Recipe
+                    );
+                    filterTabsOrder.Add(RECIPES);
+                }
+            }
+
+            if (filterTabsOrder.Count > 1)
+            {
+                ModEntry.Log($"Setup tabs for {Shop.ShopId}: {string.Join(", ", filterTabsOrder)}");
+                filterTabsOrder.Insert(0, NO_FILTER);
+                filterTabs[NO_FILTER] = new(
+                    new(NO_FILTER.ToString(), Rectangle.Empty, "", NO_FILTER, tabTexture, tabSourceRect, 4f, false),
+                    Filter_Nop
                 );
             }
             else
             {
-                categoryTabs.Clear();
+                filterTabsOrder.Clear();
+                filterTabs.Clear();
             }
         }
 
         Reposition();
-        Game1.keyboardDispatcher.Subscriber = searchBox;
-        searchBox.Selected = false;
+        if (searchBox != null)
+        {
+            Game1.keyboardDispatcher.Subscriber = searchBox;
+            searchBox.Selected = false;
+        }
+    }
+
+    public Rectangle SearchBoxRect()
+    {
+        return new(
+            Shop!.xPositionOnScreen,
+            Shop.yPositionOnScreen
+                + Shop.height
+                - Shop.inventory.height
+                - 12
+                + 17 * 4
+                + 4
+                + (ModEntry.HasMod_BiggerBackpack ? 64 : 0),
+            240,
+            56
+        );
     }
 
     public void Reposition()
@@ -92,82 +253,113 @@ internal sealed class SearchContext : IDisposable
         if (Shop == null)
             return;
 
-        searchBox.X = Shop.xPositionOnScreen;
-        searchBox.Y = Shop.yPositionOnScreen + Shop.height - Shop.inventory.height - 12 + 17 * 4 + 4;
-        searchBox.Width = 240;
-        searchBox.Height = 56;
-        searchBoxCC.bounds = new(searchBox.X, searchBox.Y, searchBox.Width, searchBox.Height);
+        if (searchBox != null)
+        {
+            Rectangle searchBoxRect = SearchBoxRect();
+            searchBox.X = searchBoxRect.X;
+            searchBox.Y = searchBoxRect.Y;
+            searchBox.Width = searchBoxRect.Width;
+            searchBox.Height = searchBoxRect.Height;
+            searchBoxCC.bounds = searchBoxRect;
+        }
 
         int n = 0;
-        foreach (int category in categoryTabsOrder)
+        foreach (string filter in filterTabsOrder)
         {
-            ClickableTextureComponent cct = categoryTabs[category];
-            cct.bounds.X = Shop.xPositionOnScreen + n * tabSourceRect.Width * 4 + 20;
-            cct.bounds.Y = Shop.yPositionOnScreen - tabSourceRect.Height * 4 + 8;
-            if (category == categoryCurrent)
+            FilterTab tab = filterTabs[filter];
+            ClickableTextureComponent ctc = tab.CTC;
+            ctc.bounds.X = Shop.xPositionOnScreen + n * tabSourceRect.Width * 4 + 20;
+            ctc.bounds.Y = Shop.yPositionOnScreen - tabSourceRect.Height * 4 + 8;
+            if (filter == filterCurrent)
             {
-                cct.bounds.Y += TAB_OFFSET;
+                ctc.bounds.Y += TAB_OFFSET;
             }
-            cct.bounds.Width = tabSourceRect.Width * 4;
-            cct.bounds.Height = tabSourceRect.Height * 4;
+            ctc.bounds.Width = tabSourceRect.Width * 4;
+            ctc.bounds.Height = tabSourceRect.Height * 4;
             n++;
         }
 
-        categoryCurrent = NO_CATEGORY;
+        filterCurrent = NO_FILTER;
     }
 
     public void Dispose()
     {
         forSaleAll = null;
-        categoryTabsOrder.Clear();
-        categoryTabs.Clear();
-        searchBox.Selected = false;
-        if (Game1.keyboardDispatcher.Subscriber == searchBox)
-            Game1.keyboardDispatcher.Subscriber = null;
+        filterTabsOrder.Clear();
+        filterTabs.Clear();
+        if (searchBox != null)
+        {
+            searchBox.Selected = false;
+            if (Game1.keyboardDispatcher.Subscriber == searchBox)
+                Game1.keyboardDispatcher.Subscriber = null;
+        }
     }
 
     public void OnEnter(TextBox sender) => DoSearch();
 
-    public void OnKeyPress(Keys key)
+    public bool OnKeyPress(Keys key)
     {
-        if (searchBox.Selected)
+        if (searchBox?.Selected ?? false)
+        {
             DoSearch();
+            return false;
+        }
+        return true;
     }
 
     public bool OnGamePadButton(Buttons button)
     {
         if (
             Shop == null
-            || categoryTabsOrder.Count == 0
+            || filterTabsOrder.Count == 0
             || (button != Buttons.RightShoulder && button != Buttons.LeftShoulder)
         )
         {
             return true;
         }
-        if (categoryTabs.TryGetValue(categoryCurrent, out ClickableTextureComponent? cctCurr))
+
+        if (filterTabs.TryGetValue(filterCurrent, out FilterTab? tab))
         {
-            cctCurr.bounds.Y -= TAB_OFFSET;
+            tab.CTC.bounds.Y -= TAB_OFFSET;
         }
-        int nextIdx = categoryTabsOrder.IndexOf(categoryCurrent);
+        int nextIdx = filterTabsOrder.IndexOf(filterCurrent);
         if (button == Buttons.RightShoulder)
         {
             nextIdx++;
-            if (nextIdx == categoryTabsOrder.Count)
+            if (nextIdx == filterTabsOrder.Count)
                 nextIdx = 0;
         }
         else if (button == Buttons.LeftShoulder)
         {
             nextIdx--;
             if (nextIdx == -1)
-                nextIdx = categoryTabsOrder.Count - 1;
+                nextIdx = filterTabsOrder.Count - 1;
         }
-        categoryCurrent = categoryTabsOrder[nextIdx];
-        if (categoryTabs.TryGetValue(categoryCurrent, out cctCurr))
+        filterCurrent = filterTabsOrder[nextIdx];
+        if (filterTabs.TryGetValue(filterCurrent, out tab))
         {
-            cctCurr.bounds.Y += TAB_OFFSET;
+            tab.CTC.bounds.Y += TAB_OFFSET;
         }
         DoSearch();
+
         return false;
+    }
+
+    public void GamepadToggleSearch()
+    {
+        if (Shop == null || searchBox == null)
+            return;
+
+        if (searchBox.Selected)
+        {
+            SearchDeactivate();
+            Shop.snapToDefaultClickableComponent();
+        }
+        else
+        {
+            SearchActivate();
+            searchBoxCC.snapMouseCursorToCenter();
+        }
     }
 
     public void DoSearch()
@@ -177,14 +369,15 @@ internal sealed class SearchContext : IDisposable
 
         forSaleAll ??= Shop.forSale;
         IEnumerable<ISalable> forSale = forSaleAll;
-        if (categoryCurrent != NO_CATEGORY)
+        if (filterCurrent != NO_FILTER && filterTabs.TryGetValue(filterCurrent, out FilterTab? tab))
         {
-            forSale = forSale.Where(fs => fs is Item item && item.Category == categoryCurrent);
+            forSale = forSale.Where(tab.Filter);
         }
-        if (searchBox.Selected)
+        if (searchBox?.Selected ?? false)
         {
             string searchText = searchBox.Text;
-            forSale = forSale.Where(fs => fs.DisplayName.ContainsIgnoreCase(searchText));
+            if (!string.IsNullOrEmpty(searchText))
+                forSale = forSale.Where(fs => fs.DisplayName.ContainsIgnoreCase(searchText));
         }
         Shop.forSale = forSale.ToList();
         Shop.currentItemIndex = 0;
@@ -193,7 +386,7 @@ internal sealed class SearchContext : IDisposable
 
     internal void SearchActivate()
     {
-        if (Shop == null)
+        if (Shop == null || searchBox == null)
             return;
 
         if (!searchBox.Selected)
@@ -208,16 +401,15 @@ internal sealed class SearchContext : IDisposable
         if (Shop == null)
             return;
 
-        if (searchBox.Selected)
+        if (searchBox != null && searchBox.Selected)
         {
             searchBox.Text = I18n.Placeholder_Search();
             searchBox.Selected = false;
         }
         if (forSaleAll != null)
         {
-            if (categoryCurrent == NO_CATEGORY)
+            if (filterCurrent == NO_FILTER)
             {
-                // Patches.SetPerRow(Patches.PerRowV, forSaleAll.Count);
                 Shop.currentItemIndex = Math.Min(Shop.currentItemIndex, forSaleAll.Count - Patches.PerRowR);
                 Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
                 Shop.forSale = forSaleAll;
@@ -235,31 +427,31 @@ internal sealed class SearchContext : IDisposable
         if (Shop == null)
             return;
 
-        if (searchBoxCC.containsPoint(x, y))
+        if (searchBox != null && searchBoxCC.containsPoint(x, y))
         {
             SearchActivate();
         }
         else
         {
-            int? clickedCategory = null;
-            foreach ((int category, ClickableTextureComponent cct) in categoryTabs)
+            string? clickedFilter = null;
+            foreach ((string category, FilterTab tab) in filterTabs)
             {
-                if (cct.containsPoint(x, y))
+                if (tab.CTC.containsPoint(x, y))
                 {
-                    cct.bounds.Y += TAB_OFFSET;
-                    clickedCategory = category;
+                    tab.CTC.bounds.Y += TAB_OFFSET;
+                    clickedFilter = category;
                     break;
                 }
             }
-            if (clickedCategory != null)
+            if (clickedFilter != null)
             {
-                if (categoryTabs.TryGetValue(categoryCurrent, out ClickableTextureComponent? cctCurr))
+                if (filterTabs.TryGetValue(filterCurrent, out FilterTab? tab))
                 {
-                    cctCurr.bounds.Y -= TAB_OFFSET;
+                    tab.CTC.bounds.Y -= TAB_OFFSET;
                 }
-                int prevCategory = categoryCurrent;
-                categoryCurrent = (int)clickedCategory;
-                if (categoryCurrent != prevCategory)
+                string prevFilter = filterCurrent;
+                filterCurrent = clickedFilter;
+                if (filterCurrent != prevFilter)
                 {
                     DoSearch();
                 }
@@ -276,9 +468,9 @@ internal sealed class SearchContext : IDisposable
         }
         forSaleAll?.RemoveWhere(fsa => !Shop.itemPriceAndStock.ContainsKey(fsa));
         if (
-            !searchBoxCC.containsPoint(x, y)
+            !(searchBox != null && searchBoxCC.containsPoint(x, y))
             && !Shop.forSaleButtons.Any(fsb => fsb.containsPoint(x, y))
-            && !categoryTabs.Values.Any(cct => cct.containsPoint(x, y))
+            && !filterTabs.Values.Any(tab => tab.CTC.containsPoint(x, y))
         )
         {
             SearchDeactivate();
@@ -287,13 +479,43 @@ internal sealed class SearchContext : IDisposable
 
     public void Draw(SpriteBatch b)
     {
-        searchBox.Draw(b);
-        foreach (ClickableTextureComponent cct in categoryTabs.Values)
+        searchBox?.Draw(b);
+        foreach (FilterTab tab in filterTabs.Values)
         {
-            cct.draw(b);
-            cct.scale = 2f;
-            cct.drawItem(b, yOffset: 4);
-            cct.scale = cct.baseScale;
+            ClickableTextureComponent ctc = tab.CTC;
+
+            if (!ctc.visible)
+                continue;
+            ctc.draw(b);
+            if (ctc.item == null)
+                continue;
+            if (ctc.item.IsRecipe)
+            {
+                b.Draw(
+                    Game1.objectSpriteSheet,
+                    new(ctc.bounds.X + 3, ctc.bounds.Y + 6),
+                    recipeSourceRect,
+                    Color.White,
+                    0f,
+                    Vector2.Zero,
+                    3f,
+                    SpriteEffects.None,
+                    0.9f
+                );
+            }
+            else
+            {
+                ctc.item.drawInMenu(
+                    b,
+                    new(ctc.bounds.X, ctc.bounds.Y + 6),
+                    0.75f,
+                    1f,
+                    0.9f,
+                    StackDrawType.Hide,
+                    Color.White,
+                    false
+                );
+            }
         }
     }
 }
