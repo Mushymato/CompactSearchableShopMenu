@@ -9,6 +9,7 @@ There are many shop menu mods out there and this mod is really just a combinatio
 - [Better Shop Menu](https://www.nexusmods.com/stardewvalley/mods/2012): Grid menu.
 - [Catalogue Filter](https://www.nexusmods.com/stardewvalley/mods/13137) - [Continued](https://www.nexusmods.com/stardewvalley/mods/22379): Search box position.
 - [Shop Tabs](https://www.nexusmods.com/stardewvalley/mods/29435): Shop tabs.
+- [Better Crafting](https://www.nexusmods.com/stardewvalley/mods/11115): Bulk purchase count display.
 
 ## Installation
 
@@ -71,3 +72,9 @@ There's no way to snap to the search box yet, perhaps a future version.
 ### Android
 
 No.
+
+### Mods In Screenshots
+
+- Cornucopia - [More Crops](https://www.nexusmods.com/stardewvalley/mods/19508), [More Flowers](https://www.nexusmods.com/stardewvalley/mods/20290), [Artisan Machines](https://www.nexusmods.com/stardewvalley/mods/24842)
+- [Baubles](https://www.nexusmods.com/stardewvalley/mods/29720)
+- [Wildflour's Atelier Goods](https://www.nexusmods.com/stardewvalley/mods/27049)
