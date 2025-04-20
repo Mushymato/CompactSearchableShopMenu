@@ -3,7 +3,6 @@ using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
-using StardewValley.GameData.Shops;
 
 namespace CompactSearchableShopMenu;
 
@@ -26,10 +25,13 @@ public class ModEntry : Mod
         mon = Monitor;
         ModId = ModManifest.UniqueID;
         Config = Helper.ReadConfig<ModConfig>();
+
         helper.Events.GameLoop.GameLaunched += OnGameLaunched;
         helper.Events.Content.AssetRequested += OnAssetRequested;
+
         Harmony harmony = new(ModManifest.UniqueID);
         Patches.Patch(helper, harmony);
+        Compat.Dragoon23Dresser.Patch(helper, harmony);
     }
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)

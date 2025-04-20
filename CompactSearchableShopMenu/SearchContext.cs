@@ -25,12 +25,11 @@ internal sealed class SearchContext : IDisposable
         16,
         16
     );
-    private static Texture2D DefaultSearchBoxTexture => Game1.content.Load<Texture2D>("LooseSprites\\textBox");
     internal const int TAB_OFFSET = 8;
 
     // menu ref
     private readonly WeakReference<ShopMenu> shopMenu;
-    private ShopMenu? Shop
+    internal ShopMenu? Shop
     {
         get
         {
