@@ -55,7 +55,7 @@ Additional translations are greatly appreciated. If you would like to get DP for
         - `mushymato.CompactSearchableShopMenu/tab/QiGemShop` for `QiGemShop`
         - `mushymato.CompactSearchableShopMenu/tab/LostItems` for `LostItems`
 
-- For mod makers who used custom shop visual theme, you can include compatibility by loading a custom tab texture to `mushymato.CompactSearchableShopMenu/tab/<yourShopId>`, 16x16 is the recommended size.
+- For mod makers who used a custom shop visual theme, you can include compatibility by loading a custom tab texture to `mushymato.CompactSearchableShopMenu/tab/<yourShopId>`, 16x16 is the recommended size.
 
 - [Happy Home Designer](https://www.nexusmods.com/stardewvalley/mods/19675) implements a completely custom menu, so it takes precedence over this mod for catalogues (as it should).
 
@@ -67,7 +67,7 @@ Since this mod heavily modifies draw related logic on shop menu, it will be inco
 
 The grid menu works with gamepads, and you can use LeftShoulder and RightShoulder to switch between category tabs (not rebindable).
 
-There's no way to snap to the search box yet, perhaps a future version.
+To toggle search, press L-stick.
 
 ### Android
 
