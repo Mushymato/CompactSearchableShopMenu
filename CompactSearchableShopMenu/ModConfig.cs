@@ -1,5 +1,4 @@
 using System.Numerics;
-using CompactSearchableShopMenu.Compat;
 using StardewModdingAPI;
 
 namespace CompactSearchableShopMenu;
@@ -67,14 +66,6 @@ internal sealed class ModConfig
         );
         if (!Patches.Success_Search)
             EnableSearchAndFilters = false;
-        // yield dresser control to these mods
-        if (
-            helper.ModRegistry.IsLoaded(Dragoon23Dresser.PatchTargets[0].Item1)
-            || helper.ModRegistry.IsLoaded(Dragoon23Dresser.PatchTargets[1].Item1)
-        )
-        {
-            DresserItemPerRow = 1;
-        }
 
         if (GMCM == null || !(Patches.Success_Grid || Patches.Success_StackCount || Patches.Success_Search))
         {

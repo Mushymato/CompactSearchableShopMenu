@@ -102,10 +102,16 @@ internal static class Patches
                 harmony.Patch(
                     original: AccessTools.DeclaredMethod(typeof(ShopMenu), "customSnapBehavior"),
                     transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_customSnapBehavior_Transpiler))
+                    {
+                        priority = Priority.First,
+                    }
                 );
                 harmony.Patch(
                     original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveScrollWheelAction)),
                     transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
+                    {
+                        priority = Priority.First,
+                    }
                 );
                 harmony.Patch(
                     original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.leftClickHeld)),
@@ -115,10 +121,16 @@ internal static class Patches
                     original: setScrollBarToCurrentIndexMethod,
                     prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_setScrollBarToCurrentIndex_Prefix)),
                     transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
+                    {
+                        priority = Priority.First,
+                    }
                 );
                 harmony.Patch(
                     original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
                     transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
+                    {
+                        priority = Priority.First,
+                    }
                 );
             }
             catch (Exception ex)
@@ -197,6 +209,10 @@ internal static class Patches
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.drawCurrency)),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_drawCurrency_Prefix))
+            );
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.update)),
+                postfix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_update_Postfix))
             );
         }
         catch (Exception ex)
@@ -291,6 +307,11 @@ internal static class Patches
         SearchContext?.Draw(b);
     }
 
+    private static void ShopMenu_update_Postfix()
+    {
+        SearchContext?.Update();
+    }
+
     private static int LeftClickHeldIndex(int originalValue, int y, Rectangle scrollBarRunner, ShopMenu shopMenu)
     {
         int perRowV = perRow.Value;
@@ -366,8 +387,9 @@ internal static class Patches
         // IL_001a: callvirt instance int32 class [System.Collections]System.Collections.Generic.List`1<class StardewValley.ISalable>::get_Count()
         // IL_001f: ldc.i4.4
         // IL_0020: sub
-        matcher
-            .MatchEndForward(
+        for (int i = 0; i < 10; i++)
+        {
+            matcher.MatchEndForward(
                 [
                     new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.forSale))),
                     new(
@@ -377,16 +399,14 @@ internal static class Patches
                     new(OpCodes.Ldc_I4_4),
                     new(OpCodes.Sub),
                 ]
-            )
-            .Repeat(
-                (match) =>
-                {
-                    match.Advance(-1);
-                    match.Opcode = OpCodes.Call;
-                    match.Operand = AccessTools.PropertyGetter(typeof(Patches), nameof(PerRowR));
-                    match.Advance(2);
-                }
             );
+            if (matcher.IsInvalid)
+                break;
+            matcher.Advance(-1);
+            matcher.Opcode = OpCodes.Call;
+            matcher.Operand = AccessTools.PropertyGetter(typeof(Patches), nameof(PerRowR));
+            matcher.Advance(2);
+        }
         return matcher.Instructions();
     }
 
@@ -427,7 +447,7 @@ internal static class Patches
                     new ClickableComponent(newBounds, idx.ToString() ?? "")
                     {
                         myID = myID,
-                        upNeighborID = idx > perRowV ? myID - perRowV : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
+                        upNeighborID = idx < perRowV ? ClickableComponent.CUSTOM_SNAP_BEHAVIOR : myID - perRowV,
                         rightNeighborID = i == perRowV - 1 ? ShopMenu.region_upArrow : myID + 1,
                         downNeighborID =
                             idx < perRowV * (ShopMenu.itemsPerPage - 1)
@@ -556,6 +576,28 @@ internal static class Patches
         }
     }
 
+    public static int ApplyTradeItemStackCountCap(int buyCount, ItemStockInformation stockInformation)
+    {
+        if (stockInformation.TradeItemCount is int tradeItemCount && tradeItemCount > 0)
+        {
+            int tradeItemsHeld;
+            if (stockInformation.TradeItem == "(O)858")
+            {
+                tradeItemsHeld = Game1.player.QiGems;
+            }
+            else if (stockInformation.TradeItem == "(O)73")
+            {
+                tradeItemsHeld = Game1.netWorldState.Value.GoldenWalnuts;
+            }
+            else
+            {
+                tradeItemsHeld = Game1.player.Items.CountId(stockInformation.TradeItem);
+            }
+            buyCount = Math.Min(buyCount, tradeItemsHeld / tradeItemCount);
+        }
+        return buyCount;
+    }
+
     public static int GetBuyStackCount(ShopMenu shopMenu, ItemStockInformation stockInformation)
     {
         if (!Game1.oldKBState.IsKeyDown(Keys.LeftShift))
@@ -586,23 +628,7 @@ internal static class Patches
                 ShopMenu.getPlayerCurrencyAmount(Game1.player, shopMenu.currency) / stockInformation.Price
             );
         }
-        if (stockInformation.TradeItemCount is int tradeItemCount && tradeItemCount > 0)
-        {
-            int tradeItemsHeld;
-            if (stockInformation.TradeItem == "(O)858")
-            {
-                tradeItemsHeld = Game1.player.QiGems;
-            }
-            else if (stockInformation.TradeItem == "(O)73")
-            {
-                tradeItemsHeld = Game1.netWorldState.Value.GoldenWalnuts;
-            }
-            else
-            {
-                tradeItemsHeld = Game1.player.Items.CountId(stockInformation.TradeItem);
-            }
-            buyCount = Math.Min(buyCount, tradeItemsHeld / tradeItemCount);
-        }
+        buyCount = ApplyTradeItemStackCountCap(buyCount, stockInformation);
 
         return buyCount;
     }
@@ -1044,8 +1070,16 @@ internal static class Patches
         return matcher.Instructions();
     }
 
-    private static int ShopMenu_receiveLeftClick_GetMaxBuyStack(int stack, ShopMenu shopMenu, int forSaleIdx) =>
-        GetBuyStackCount(shopMenu, shopMenu.itemPriceAndStock[shopMenu.forSale[forSaleIdx]]);
+    private static int ShopMenu_receiveLeftClick_GetMaxBuyStack(int stack, ShopMenu shopMenu, int forSaleIdx)
+    {
+        return ApplyTradeItemStackCountCap(stack, shopMenu.itemPriceAndStock[shopMenu.forSale[forSaleIdx]]);
+    }
+
+    private static int Get_StackCount_5() => ModEntry.Config.StackCount_5;
+
+    private static int Get_StackCount_25() => ModEntry.Config.StackCount_25;
+
+    private static int Get_StackCount_999() => ModEntry.Config.StackCount_999;
 
     private static IEnumerable<CodeInstruction> ShopMenu_receiveLeftClick_transpiler(
         IEnumerable<CodeInstruction> instructions,
@@ -1053,6 +1087,42 @@ internal static class Patches
     )
     {
         CodeMatcher matcher = new(instructions, generator);
+
+        // IL_05af: ldc.i4.5
+        // IL_05b0: br.s IL_05c9
+        // IL_05b2: ldsflda valuetype [MonoGame.Framework]Microsoft.Xna.Framework.Input.KeyboardState StardewValley.Game1::oldKBState
+        // IL_05b7: ldc.i4.s 49
+        // IL_05b9: call instance bool [MonoGame.Framework]Microsoft.Xna.Framework.Input.KeyboardState::IsKeyDown(valuetype [MonoGame.Framework]Microsoft.Xna.Framework.Input.Keys)
+        // IL_05be: brtrue.s IL_05c4
+        // IL_05c0: ldc.i4.s 25
+        // IL_05c2: br.s IL_05c9
+        // IL_05c4: ldc.i4 999
+        matcher
+            .MatchStartForward(
+                [
+                    new(OpCodes.Ldc_I4_5),
+                    new(OpCodes.Br_S),
+                    new(OpCodes.Ldsflda, AccessTools.DeclaredField(typeof(Game1), nameof(Game1.oldKBState))),
+                    new(OpCodes.Ldc_I4_S),
+                    new(
+                        OpCodes.Call,
+                        AccessTools.DeclaredMethod(typeof(KeyboardState), nameof(KeyboardState.IsKeyDown))
+                    ),
+                    new(OpCodes.Brtrue_S),
+                    new(OpCodes.Ldc_I4_S, (sbyte)25),
+                    new(OpCodes.Br_S),
+                    new(OpCodes.Ldc_I4, 999),
+                ]
+            )
+            .ThrowIfNotMatch("Failed to find 'big terrible 5 25 999 tertiary'");
+        matcher.Opcode = OpCodes.Call;
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(Get_StackCount_5));
+        matcher.Advance(6);
+        matcher.Opcode = OpCodes.Call;
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(Get_StackCount_25));
+        matcher.Advance(2);
+        matcher.Opcode = OpCodes.Call;
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(Get_StackCount_999));
 
         // IL_065d: ldloc.s 14
         // IL_065f: ldarg.0

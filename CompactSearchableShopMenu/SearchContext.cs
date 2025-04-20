@@ -510,4 +510,10 @@ internal sealed class SearchContext : IDisposable
             }
         }
     }
+
+    internal void Update()
+    {
+        if (Game1.options.gamepadControls)
+            searchBox?.Update();
+    }
 }

@@ -31,7 +31,6 @@ public class ModEntry : Mod
 
         Harmony harmony = new(ModManifest.UniqueID);
         Patches.Patch(helper, harmony);
-        Compat.Dragoon23Dresser.Patch(helper, harmony);
     }
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
