@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Gamepad search should open keyboard.
+- Eliminate use of Repeat to avoid trapping in infinite loop.
 
 ## [0.3.0] - 2025-04-19
 
