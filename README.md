@@ -23,17 +23,40 @@ There are many shop menu mods out there and this mod is really just a combinatio
 
 - `Stack Count on Shift+Ctrl`: Number of items to buy when using Shift+Ctrl (vanilla 25).
 
-- `Enable Search and Filters`: Enable search box and category tabs (if not drawer).
+- `Enable Search and Filters`: Enable search box and category tabs (if the shop does not already have side tabs), this setting overrides the following ones.
+
+- `Enable Search`: Enable search box.
+
+- `Search Box Offset`: Adjust the search box's position (default 0 0).
+
+- `Enable Tabs: Categories`: Enable tabs based on item categories.
+
+- `Enable Tabs: Detailed Seeds`: Enable separate tabs for crop/tree/bush seeds.
+
+- `Enable Tab: Recipes`: Enable separate tab for recipes.
+
+## Translations
+
+- English
+
+- Simplified Chinese
+
+Additional translations are greatly appreciated. If you would like to get DP for your work, feel free to make a separate mod page.
 
 ## Compatibility
 
 ### Compatible Mods
 
-Any shops added through content patcher is compatible.
+- Any shops added through content patcher is compatible.
 
-There are no custom UI elements used, so all interface recolor mods are compatible.
+- This mod uses vanilla assets for most of it's UI elements, with exception of the tabs for QiGemShop and LostItem shop which have custom tab graphics created to match those shop's themes.
+    - Those are loaded from the asset folder of this mod, but you can override it in content patcher by targeting:
+        - `mushymato.CompactSearchableShopMenu/tab/QiGemShop` for `QiGemShop`
+        - `mushymato.CompactSearchableShopMenu/tab/LostItems` for `LostItems`
 
-[Happy Home Designer](https://www.nexusmods.com/stardewvalley/mods/19675) implements a completely custom menu, so it takes precedence over this mod for catalogues (as it should).
+- For mod makers who used custom shop visual theme, you can include compatibility by loading a custom tab texture to `mushymato.CompactSearchableShopMenu/tab/<yourShopId>`, 16x16 is the recommended size.
+
+- [Happy Home Designer](https://www.nexusmods.com/stardewvalley/mods/19675) implements a completely custom menu, so it takes precedence over this mod for catalogues (as it should).
 
 ### Incompatible Mods
 

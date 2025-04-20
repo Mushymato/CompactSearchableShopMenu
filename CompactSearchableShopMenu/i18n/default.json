@@ -5,8 +5,12 @@
   "config.ShopItemPerRow.description": "Number of items per row when a price must be displayed (e.g. regular shops).",
   "config.DresserItemPerRow.name": "Dresser Item Per Row",
   "config.DresserItemPerRow.description": "Number of items per row when there are no prices (e.g. dressers, catalogues).",
-  "config.StackCount.name": "Stack Count on Shift+Ctrl",
-  "config.StackCount.description": "Number of items to buy when using Shift+Ctrl (vanilla 25).",
+  "config.StackCount.5.name": "Stack Count on Shift",
+  "config.StackCount.5.description": "Number of items to buy when using left click & Shift (vanilla 5).",
+  "config.StackCount.25.name": "Stack Count on Shift+Ctrl",
+  "config.StackCount.25.description": "Number of items to buy when using left click & Shift+Ctrl (vanilla 25).",
+  "config.StackCount.999.name": "Stack Count on Shift+Ctrl+1",
+  "config.StackCount.999.description": "Number of items to buy when using left click & Shift+Ctrl (vanilla 999).",
   "config.EnableSearchAndFilters.name": "Enable Search and Filters",
   "config.EnableSearchAndFilters.description": "Enable search box and category tabs (if the shop does not already have side tabs), this setting overrides the following ones.",
   "config.EnableSearch.name": "Enable Search",
@@ -18,7 +22,11 @@
   "config.EnableTab.DetailedSeeds.name": "Enable Tabs: Detailed Seeds",
   "config.EnableTab.DetailedSeeds.description": "Enable separate tabs for crop/tree/bush seeds.",
   "config.EnableTab.Recipes.name": "Enable Tab: Recipes",
-  "config.EnableTab.Recipes.description": "Enable tab for recipes.",
+  "config.EnableTab.Recipes.description": "Enable separate tab for recipes.",
+  // config fail messages
+  "config.failed.Grid": "Failed to apply shop grid features, please report this to the mod page.",
+  "config.failed.StackCount": "Failed to apply shop stack count features, please report this to the mod page.",
+  "config.failed.Search": "Failed to apply shop search features, please report this to the mod page.",
   // ui
   "placeholder.search": "Search..."
 }

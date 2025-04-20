@@ -1,6 +1,5 @@
 using System.Numerics;
 using StardewModdingAPI;
-using StardewValley;
 
 namespace CompactSearchableShopMenu;
 
@@ -12,8 +11,14 @@ internal sealed class ModConfig
     /// <summary>Number of items per row when there are no prices (e.g. dressers, catalogues).</summary>
     public int DresserItemPerRow { get; set; } = 9;
 
+    /// <summary>Number of items to buy when using Shift.</summary>
+    public int StackCount_5 { get; set; } = 5;
+
     /// <summary>Number of items to buy when using Shift+Ctrl.</summary>
-    public int StackCount { get; set; } = 25;
+    public int StackCount_25 { get; set; } = 25;
+
+    /// <summary>Number of items to buy when using Shift+Ctrl+1.</summary>
+    public int StackCount_999 { get; set; } = 999;
 
     /// <summary>Enable search box and filter tabs in general.</summary>
     public bool EnableSearchAndFilters { get; set; } = true;
@@ -41,6 +46,10 @@ internal sealed class ModConfig
         EnableSearchAndFilters = true;
         EnableSearch = true;
         SearchBoxOffset = Vector2.Zero;
+        // stack count
+        StackCount_5 = 5;
+        StackCount_25 = 25;
+        StackCount_999 = 999;
         // tabs
         EnableTab_Category = true;
         EnableTab_DetailedSeeds = true;
@@ -96,16 +105,40 @@ internal sealed class ModConfig
                 max: 9
             );
         }
+        else
+        {
+            GMCM.AddParagraph(mod, I18n.Config_Failed_Grid);
+        }
         if (Patches.Success_StackCount)
         {
             GMCM.AddNumberOption(
                 mod,
-                getValue: () => StackCount,
-                setValue: (value) => StackCount = value,
-                name: I18n.Config_StackCount_Name,
-                tooltip: I18n.Config_StackCount_Description,
+                getValue: () => StackCount_5,
+                setValue: (value) => StackCount_5 = value,
+                name: I18n.Config_StackCount_5_Name,
+                tooltip: I18n.Config_StackCount_5_Description,
                 min: 5
             );
+            GMCM.AddNumberOption(
+                mod,
+                getValue: () => StackCount_25,
+                setValue: (value) => StackCount_25 = value,
+                name: I18n.Config_StackCount_25_Name,
+                tooltip: I18n.Config_StackCount_25_Description,
+                min: 5
+            );
+            GMCM.AddNumberOption(
+                mod,
+                getValue: () => StackCount_999,
+                setValue: (value) => StackCount_999 = value,
+                name: I18n.Config_StackCount_999_Name,
+                tooltip: I18n.Config_StackCount_999_Description,
+                min: 5
+            );
+        }
+        else
+        {
+            GMCM.AddParagraph(mod, I18n.Config_Failed_StackCount);
         }
         if (Patches.Success_Search)
         {
@@ -162,6 +195,10 @@ internal sealed class ModConfig
                 name: I18n.Config_EnableTab_Recipes_Name,
                 tooltip: I18n.Config_EnableTab_Recipes_Description
             );
+        }
+        else
+        {
+            GMCM.AddParagraph(mod, I18n.Config_Failed_Search);
         }
     }
 }

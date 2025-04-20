@@ -15,6 +15,7 @@ namespace CompactSearchableShopMenu;
 
 internal static class Patches
 {
+    private const int ROW_SHOW_PRICE = 6;
     private static readonly PerScreen<int> perRow = new();
     private static readonly PerScreen<int> perRowR = new();
     internal static int PerRowV => perRow.Value;
@@ -85,81 +86,87 @@ internal static class Patches
             ModEntry.Log(ex.ToString());
         }
 
-        try
+        if (Success_Grid)
         {
-            // scrolling snap behavior
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), "downArrowPressed"),
-                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_downArrowPressed_Prefix))
-            );
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), "upArrowPressed"),
-                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_upArrowPressed_Prefix))
-            );
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), "customSnapBehavior"),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_customSnapBehavior_Transpiler))
-            );
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveScrollWheelAction)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
-            );
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.leftClickHeld)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_leftClickHeld_Transpiler))
-            );
-            harmony.Patch(
-                original: setScrollBarToCurrentIndexMethod,
-                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_setScrollBarToCurrentIndex_Prefix)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
-            );
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
-            );
-        }
-        catch (Exception ex)
-        {
-            Success_Scroll = false;
-            ModEntry.LogOnce("Failed to apply scroll patches, scroll will progress one item at a time.", LogLevel.Warn);
-            ModEntry.Log(ex.ToString());
-        }
-
-        try
-        {
-            // draw (strong, adjusts text font)
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.draw)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_draw_Transpiler_strong))
-                {
-                    priority = Priority.First,
-                }
-            );
-        }
-        catch (Exception ex)
-        {
-            Success_DrawStrong = false;
-            ModEntry.LogOnce("Failed to apply draw patches (strong), trying weaker patches.", LogLevel.Warn);
-            ModEntry.Log(ex.ToString());
             try
             {
-                // draw (weak, only turn off display name)
+                // scrolling snap behavior
+                harmony.Patch(
+                    original: AccessTools.DeclaredMethod(typeof(ShopMenu), "downArrowPressed"),
+                    prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_downArrowPressed_Prefix))
+                );
+                harmony.Patch(
+                    original: AccessTools.DeclaredMethod(typeof(ShopMenu), "upArrowPressed"),
+                    prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_upArrowPressed_Prefix))
+                );
+                harmony.Patch(
+                    original: AccessTools.DeclaredMethod(typeof(ShopMenu), "customSnapBehavior"),
+                    transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_customSnapBehavior_Transpiler))
+                );
+                harmony.Patch(
+                    original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveScrollWheelAction)),
+                    transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
+                );
+                harmony.Patch(
+                    original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.leftClickHeld)),
+                    transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_leftClickHeld_Transpiler))
+                );
+                harmony.Patch(
+                    original: setScrollBarToCurrentIndexMethod,
+                    prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_setScrollBarToCurrentIndex_Prefix)),
+                    transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
+                );
+                harmony.Patch(
+                    original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
+                    transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceForSaleCountMin4_Transpiler))
+                );
+            }
+            catch (Exception ex)
+            {
+                Success_Scroll = false;
+                ModEntry.LogOnce(
+                    "Failed to apply scroll patches, scroll will progress one item at a time.",
+                    LogLevel.Warn
+                );
+                ModEntry.Log(ex.ToString());
+            }
+
+            try
+            {
+                // draw (strong, adjusts text font)
                 harmony.Patch(
                     original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.draw)),
-                    transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_draw_Transpiler_weak))
+                    transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_draw_Transpiler_strong))
                     {
                         priority = Priority.First,
                     }
                 );
             }
-            catch (Exception ex2)
+            catch (Exception ex)
             {
-                Success_DrawWeak = false;
-                ModEntry.LogOnce(
-                    "Failed to apply draw patches (weak), shop items will display strangely.",
-                    LogLevel.Warn
-                );
-                ModEntry.Log(ex2.ToString());
+                Success_DrawStrong = false;
+                ModEntry.LogOnce("Failed to apply draw patches (strong), trying weaker patches.", LogLevel.Warn);
+                ModEntry.Log(ex.ToString());
+                try
+                {
+                    // draw (weak, only turn off display name)
+                    harmony.Patch(
+                        original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.draw)),
+                        transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_draw_Transpiler_weak))
+                        {
+                            priority = Priority.First,
+                        }
+                    );
+                }
+                catch (Exception ex2)
+                {
+                    Success_DrawWeak = false;
+                    ModEntry.LogOnce(
+                        "Failed to apply draw patches (weak), shop items will display strangely.",
+                        LogLevel.Warn
+                    );
+                    ModEntry.Log(ex2.ToString());
+                }
             }
         }
 
@@ -204,17 +211,16 @@ internal static class Patches
         {
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceStackCounts_transpiler))
-            );
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveRightClick)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_replaceStackCounts_transpiler))
+                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_transpiler))
             );
         }
         catch (Exception ex)
         {
             Success_StackCount = false;
-            ModEntry.LogOnce("Failed to apply stack count patch, using vanilla buy 25 on Shift+Ctrl.", LogLevel.Warn);
+            ModEntry.LogOnce(
+                "Failed to apply stack count patch, will not change number of items bought with Shift(+Ctrl(+1)).",
+                LogLevel.Warn
+            );
             ModEntry.Log(ex.ToString());
         }
     }
@@ -512,7 +518,96 @@ internal static class Patches
         }
     }
 
-    public static void DrawDisplayName(
+    public static void DontDrawDisplayName(
+        SpriteBatch b,
+        string s,
+        int x,
+        int y,
+        int characterPosition,
+        int width,
+        int height,
+        float alpha,
+        float layerDepth,
+        bool junimoText,
+        int drawBGScroll,
+        string placeHolderScrollWidthText,
+        Color? color,
+        SpriteText.ScrollTextAlignment scroll_text_alignment
+    )
+    {
+        if (perRow.Value <= 2)
+        {
+            SpriteText.drawString(
+                b,
+                s,
+                x,
+                y,
+                characterPosition,
+                width,
+                height,
+                alpha,
+                layerDepth,
+                junimoText,
+                drawBGScroll,
+                placeHolderScrollWidthText,
+                color,
+                scroll_text_alignment
+            );
+        }
+    }
+
+    public static int GetBuyStackCount(ShopMenu shopMenu, ItemStockInformation stockInformation)
+    {
+        if (!Game1.oldKBState.IsKeyDown(Keys.LeftShift))
+        {
+            return 1;
+        }
+
+        int buyCount = Success_StackCount ? ModEntry.Config.StackCount_5 : 5;
+        if (Game1.oldKBState.IsKeyDown(Keys.LeftControl))
+        {
+            if (Game1.oldKBState.IsKeyDown(Keys.D1))
+            {
+                buyCount = Success_StackCount ? ModEntry.Config.StackCount_999 : 999;
+            }
+            else
+            {
+                buyCount = Success_StackCount ? ModEntry.Config.StackCount_25 : 25;
+            }
+        }
+        if (buyCount < 1)
+            return 1;
+
+        buyCount = Math.Min(buyCount, stockInformation.Stock);
+        if (stockInformation.Price > 0)
+        {
+            buyCount = Math.Min(
+                buyCount,
+                ShopMenu.getPlayerCurrencyAmount(Game1.player, shopMenu.currency) / stockInformation.Price
+            );
+        }
+        if (stockInformation.TradeItemCount is int tradeItemCount && tradeItemCount > 0)
+        {
+            int tradeItemsHeld;
+            if (stockInformation.TradeItem == "(O)858")
+            {
+                tradeItemsHeld = Game1.player.QiGems;
+            }
+            else if (stockInformation.TradeItem == "(O)73")
+            {
+                tradeItemsHeld = Game1.netWorldState.Value.GoldenWalnuts;
+            }
+            else
+            {
+                tradeItemsHeld = Game1.player.Items.CountId(stockInformation.TradeItem);
+            }
+            buyCount = Math.Min(buyCount, tradeItemsHeld / tradeItemCount);
+        }
+
+        return buyCount;
+    }
+
+    public static void DrawDisplayNameAndBuyCount(
         SpriteBatch b,
         string s,
         int x,
@@ -527,6 +622,9 @@ internal static class Patches
         string placeHolderScrollWidthText,
         Color? color,
         SpriteText.ScrollTextAlignment scroll_text_alignment,
+        ClickableComponent component,
+        ShopMenu shopMenu,
+        ItemStockInformation stockInformation,
         ISalable salable
     )
     {
@@ -550,6 +648,7 @@ internal static class Patches
             );
             return;
         }
+
         if (!salable.ShouldDrawIcon())
         {
             Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
@@ -560,7 +659,36 @@ internal static class Patches
         }
         if (salable.Stack > 1)
         {
-            DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(x, y), color, alpha, layerDepth);
+            if (perRow.Value >= 8)
+            {
+                DrawShadowOrBoldText(
+                    b,
+                    "x" + salable.Stack,
+                    new Vector2(x - 36, y),
+                    color,
+                    alpha,
+                    layerDepth,
+                    Game1.smallFont
+                );
+            }
+            else
+            {
+                DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(x - 12, y), color, alpha, layerDepth);
+            }
+        }
+
+        int buyCount = GetBuyStackCount(shopMenu, stockInformation);
+        if (buyCount > 1)
+        {
+            DrawShadowOrBoldText(
+                b,
+                buyCount.ToString(),
+                new Vector2(component.bounds.Left + 24, component.bounds.Top + 4),
+                color,
+                1f,
+                layerDepth,
+                Game1.tinyFont
+            );
         }
     }
 
@@ -601,11 +729,12 @@ internal static class Patches
                 scroll_text_alignment
             );
         }
-        else
+        else if (perRow.Value <= ROW_SHOW_PRICE)
         {
-            Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
+            SpriteFont spriteFont = perRow.Value <= 4 ? Game1.dialogueFont : Game1.smallFont;
+            Vector2 stringSize = spriteFont.MeasureString(s);
             Vector2 position = new(component.bounds.Right - stringSize.X - 32, component.bounds.Top + 12);
-            DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth);
+            DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth, spriteFont);
         }
     }
 
@@ -644,7 +773,7 @@ internal static class Patches
                 shadowIntensity
             );
         }
-        else
+        else if (perRow.Value <= ROW_SHOW_PRICE)
         {
             Utility.drawWithShadow(
                 b,
@@ -701,12 +830,13 @@ internal static class Patches
                 scroll_text_alignment
             );
         }
-        else
+        else if (perRow.Value <= ROW_SHOW_PRICE)
         {
-            Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
+            SpriteFont spriteFont = perRow.Value <= 4 ? Game1.dialogueFont : Game1.smallFont;
+            Vector2 stringSize = spriteFont.MeasureString(s);
             Vector2 position =
                 new(component.bounds.Right - stringSize.X - 24, component.bounds.Bottom - stringSize.Y - 8);
-            DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth);
+            DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth, spriteFont);
         }
     }
 
@@ -746,9 +876,10 @@ internal static class Patches
                 shadowIntensity
             );
         }
-        else
+        else if (perRow.Value <= ROW_SHOW_PRICE)
         {
-            Vector2 stringSize = Game1.dialogueFont.MeasureString("x" + count);
+            SpriteFont spriteFont = perRow.Value <= 4 ? Game1.dialogueFont : Game1.smallFont;
+            Vector2 stringSize = spriteFont.MeasureString("x" + count);
             Utility.drawWithShadow(
                 b,
                 texture,
@@ -777,6 +908,21 @@ internal static class Patches
     {
         CodeMatcher matcher = new(instructions, generator);
 
+        // IL_0190: ldarg.0
+        // IL_0191: ldloc.s 7
+        // IL_0193: ldloc.s 6
+        // IL_0195: call instance valuetype StardewValley.StackDrawType StardewValley.Menus.ShopMenu::GetStackDrawType(class StardewValley.ItemStockInformation, class StardewValley.ISalable)
+        matcher.MatchStartForward(
+            [
+                new(inst => inst.IsLdloc()),
+                new(inst => inst.IsLdloc()),
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.GetStackDrawType))),
+            ]
+        );
+        CodeInstruction ldlocItemStockInformation = matcher.Instruction;
+        matcher.Advance(1);
+        CodeInstruction ldlocSalable = matcher.Instruction;
+
         // IL_01b2: ldloc.s 4
         // IL_01b4: ldflda valuetype[MonoGame.Framework]Microsoft.Xna.Framework.Rectangle StardewValley.Menus.ClickableComponent::bounds
         // IL_01b9: ldfld int32[MonoGame.Framework]Microsoft.Xna.Framework.Rectangle::X
@@ -790,33 +936,46 @@ internal static class Patches
                 new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(Rectangle), nameof(Rectangle.X))),
             ]
         );
-        CodeInstruction ldlocClickableComponent = matcher.Instruction.Clone();
+        CodeInstruction ldlocClickableComponent = matcher.Instruction;
 
-        // IL_0242: ldloc.s 6
-        // IL_0244: callvirt instance bool StardewValley.ISalable::ShouldDrawIcon()
-        // IL_0249: brfalse IL_04e7
-        matcher.MatchStartForward(
-            [
-                new(inst => inst.IsLdloc()),
-                new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.ShouldDrawIcon))),
-                new(OpCodes.Brfalse),
-            ]
-        );
-        CodeInstruction ldlocSalable = matcher.Instruction.Clone();
+        // // IL_0242: ldloc.s 6
+        // // IL_0244: callvirt instance bool StardewValley.ISalable::ShouldDrawIcon()
+        // // IL_0249: brfalse IL_04e7
+        // matcher.MatchStartForward(
+        //     [
+        //         new(inst => inst.IsLdloc()),
+        //         new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.ShouldDrawIcon))),
+        //         new(OpCodes.Brfalse),
+        //     ]
+        // );
 
         // display name text
         matcher
             .MatchStartForward(
                 [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
             )
-            .InsertAndAdvance([ldlocSalable.Clone()]);
-        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayName));
+            .InsertAndAdvance(
+                [
+                    ldlocClickableComponent.Clone(),
+                    new(OpCodes.Ldarg_0),
+                    ldlocItemStockInformation.Clone(),
+                    ldlocSalable.Clone(),
+                ]
+            );
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayNameAndBuyCount));
         matcher
             .MatchStartForward(
                 [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
             )
-            .InsertAndAdvance([ldlocSalable.Clone()]);
-        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayName));
+            .InsertAndAdvance(
+                [
+                    ldlocClickableComponent.Clone(),
+                    new(OpCodes.Ldarg_0),
+                    ldlocItemStockInformation.Clone(),
+                    ldlocSalable.Clone(),
+                ]
+            );
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayNameAndBuyCount));
 
         // price text + icon
         matcher
@@ -876,27 +1035,72 @@ internal static class Patches
         matcher.MatchStartForward(
             [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
         );
-        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayName));
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DontDrawDisplayName));
         matcher.MatchStartForward(
             [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
         );
-        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayName));
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DontDrawDisplayName));
 
         return matcher.Instructions();
     }
 
-    private static int ShopMenu_StackCount() => ModEntry.Config.StackCount;
+    private static int ShopMenu_receiveLeftClick_GetMaxBuyStack(int stack, ShopMenu shopMenu, int forSaleIdx) =>
+        GetBuyStackCount(shopMenu, shopMenu.itemPriceAndStock[shopMenu.forSale[forSaleIdx]]);
 
-    private static IEnumerable<CodeInstruction> ShopMenu_replaceStackCounts_transpiler(
+    private static IEnumerable<CodeInstruction> ShopMenu_receiveLeftClick_transpiler(
         IEnumerable<CodeInstruction> instructions,
         ILGenerator generator
     )
     {
         CodeMatcher matcher = new(instructions, generator);
 
-        matcher.MatchStartForward([new(OpCodes.Ldc_I4_S, (sbyte)25), new(OpCodes.Br_S), new(OpCodes.Ldc_I4, 999)]);
-        matcher.Opcode = OpCodes.Call;
-        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(ShopMenu_StackCount));
+        // IL_065d: ldloc.s 14
+        // IL_065f: ldarg.0
+        // IL_0660: ldfld class [System.Collections]System.Collections.Generic.List`1<class StardewValley.ISalable> StardewValley.Menus.ShopMenu::forSale
+        // IL_0665: ldloc.s 13
+        // IL_0667: callvirt instance !0 class [System.Collections]System.Collections.Generic.List`1<class StardewValley.ISalable>::get_Item(int32)
+        // IL_066c: callvirt instance int32 StardewValley.ISalable::maximumStackSize()
+        // IL_0671: call int32 [System.Runtime]System.Math::Min(int32, int32)
+        matcher
+            .MatchEndForward(
+                [
+                    new(inst => inst.IsLdloc()),
+                    new(OpCodes.Ldarg_0),
+                    new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.forSale))),
+                    new(inst => inst.IsLdloc()),
+                    new(OpCodes.Callvirt),
+                    new(
+                        OpCodes.Callvirt,
+                        AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.maximumStackSize))
+                    ),
+                    new(
+                        OpCodes.Call,
+                        AccessTools.DeclaredMethod(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])
+                    ),
+                    new(inst => inst.IsStloc()),
+                ]
+            )
+            .ThrowIfNotMatch("Failed to find 'Math.Min(val, forSale[num3].maximumStackSize())'");
+        CodeInstruction stlocStack = matcher.Instruction.Clone();
+        matcher.Advance(-4);
+        CodeInstruction ldlocForSaleIdx = matcher.Instruction.Clone();
+        matcher.Advance(-3);
+        CodeInstruction ldlocStack = matcher.Instruction.Clone();
+
+        matcher
+            .Advance(1)
+            .InsertAndAdvance(
+                [
+                    new(OpCodes.Ldarg_0),
+                    ldlocForSaleIdx.Clone(),
+                    new(
+                        OpCodes.Call,
+                        AccessTools.DeclaredMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_GetMaxBuyStack))
+                    ),
+                    stlocStack.Clone(),
+                    ldlocStack.Clone(),
+                ]
+            );
 
         return matcher.Instructions();
     }

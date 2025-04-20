@@ -7,6 +7,12 @@
   "config.DresserItemPerRow.description": "当物品没有价钱时(柜子，家具目录)，使用这个列数。",
   "config.StackCount.name": "Shift+Ctrl购买数",
   "config.StackCount.description": "用Shift+Ctrl时购买的数量(原版25)。",
+  "config.StackCount.5.name": "Shift购买数",
+  "config.StackCount.5.description": "用左键和Shift时购买的数量(原版5)。",
+  "config.StackCount.25.name": "Shift+Ctrl购买数",
+  "config.StackCount.25.description": "用左键和Shift+Ctrl时购买的数量(原版25)。",
+  "config.StackCount.999.name": "Shift+Ctrl+1购买数",
+  "config.StackCount.999.description": "用左键和Shift+Ctrl+1时购买的数量(原版999)。",
   "config.EnableSearchAndFilters.name": "启用搜索和过滤",
   "config.EnableSearchAndFilters.description": "启用搜索框和类别选项（当菜单没有自带类别时）。此设定优先于以下设定。",
   "config.EnableSearch.name": "启用搜索",
@@ -19,6 +25,10 @@
   "config.EnableTab.DetailedSeeds.description": "启用将种子分为作物，树，和灌物的选项卡",
   "config.EnableTab.Recipes.name": "启用选项卡：配方",
   "config.EnableTab.Recipes.description": "启用配方的单独选项卡。",
+  // config fail messages
+  "config.failed.Grid": "商店物品格子化失败，请将此错误其报告到MOD页面。",
+  "config.failed.StackCount": "商店购买数量更改失败，请将此错误其报告到MOD页面。",
+  "config.failed.Search": "商店搜索功能添加失败，请将此错误其报告到MOD页面。",
   // ui
   "placeholder.search": "搜索..."
 }

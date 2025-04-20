@@ -18,7 +18,6 @@ internal sealed class SearchContext : IDisposable
     internal const string SEEDS_CROP = "seeds_crop";
     internal const string SEEDS_TREE = "seeds_tree";
     internal const string SEEDS_BUSH = "seeds_bush";
-
     internal static readonly Rectangle cursorsTabsSourceRect = new(16, 368, 16, 16);
     internal static readonly Rectangle recipeSourceRect = Game1.getSourceRectForStandardTileSheet(
         Game1.objectSpriteSheet,
@@ -26,8 +25,10 @@ internal sealed class SearchContext : IDisposable
         16,
         16
     );
+    private static Texture2D DefaultSearchBoxTexture => Game1.content.Load<Texture2D>("LooseSprites\\textBox");
     internal const int TAB_OFFSET = 8;
 
+    // menu ref
     private readonly WeakReference<ShopMenu> shopMenu;
     private ShopMenu? Shop
     {
@@ -38,23 +39,21 @@ internal sealed class SearchContext : IDisposable
             return null;
         }
     }
+
+    // visual themes
+    private readonly Rectangle tabSourceRect = Rectangle.Empty;
+
+    // elements
     private readonly TextBox? searchBox;
     private readonly ClickableComponent searchBoxCC;
-    private readonly Texture2D tabTexture;
-    private readonly Rectangle tabSourceRect;
     private readonly Dictionary<string, FilterTab> filterTabs = [];
     private readonly List<string> filterTabsOrder = [];
-    private string filterCurrent = NO_FILTER;
 
+    // held states
+    private string filterCurrent = NO_FILTER;
     private List<ISalable>? forSaleAll = null;
 
-    // private readonly HashSet<string>? cropItemIds = null;
-    // private readonly HashSet<string>? fruitTreesItemIds = null;
-    // private readonly HashSet<string>? wildTreeItemIds = null;
-    // private readonly HashSet<string>? customBushItemIds = null;
-
     // Filter functions
-
     private static bool Filter_Nop(ISalable salable) => throw new NotImplementedException();
 
     private static bool Filter_Recipe(ISalable salable) => salable.IsRecipe;
@@ -69,18 +68,6 @@ internal sealed class SearchContext : IDisposable
         return true;
     }
 
-    // private bool Filter_SeedCrop(ISalable salable) =>
-    //     ShouldIncludeRecipe(salable) && salable is Item item && (cropItemIds?.Contains(item.ItemId) ?? false);
-
-    // private bool Filter_SeedTree(ISalable salable) =>
-    //     ShouldIncludeRecipe(salable)
-    //     && salable is Item item
-    //     && ((fruitTreesItemIds?.Contains(item.ItemId) ?? false) || (wildTreeItemIds?.Contains(item.ItemId) ?? false));
-
-    // private bool Filter_SeedBush(ISalable salable) =>
-    //     ShouldIncludeRecipe(salable)
-    //     && salable is Item item
-    //     && (customBushItemIds?.Contains(item.QualifiedItemId) ?? false);
     private static bool Filter_SeedCrop(ISalable salable) =>
         ShouldIncludeRecipe(salable)
         && salable is SObject obj
@@ -99,9 +86,6 @@ internal sealed class SearchContext : IDisposable
         if (Shop == null)
             throw new InvalidDataException();
 
-        tabTexture = Game1.mouseCursors;
-        tabSourceRect = cursorsTabsSourceRect;
-
         searchBoxCC = new(Rectangle.Empty, "SEARCH");
         if (ModEntry.Config.EnableSearch)
         {
@@ -117,6 +101,15 @@ internal sealed class SearchContext : IDisposable
 
         if (!shopMenu.tabButtons.Any())
         {
+            Texture2D tabTexture = Game1.mouseCursors;
+            tabSourceRect = cursorsTabsSourceRect;
+            string customTabTexture = $"{ModEntry.ModId}/tab/{Shop.ShopId}";
+            if (Game1.content.DoesAssetExist<Texture2D>(customTabTexture))
+            {
+                tabTexture = Game1.content.Load<Texture2D>(customTabTexture);
+                tabSourceRect = tabTexture.Bounds;
+            }
+
             if (ModEntry.Config.EnableTab_Category)
             {
                 foreach (var sale in Shop.forSale)
