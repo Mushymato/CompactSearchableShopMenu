@@ -29,6 +29,9 @@ internal sealed class ModConfig
     /// <summary>Enable search box.</summary>
     public Vector2 SearchBoxOffset { get; set; } = Vector2.Zero;
 
+    /// <summary>Enable searching by description</summary>
+    public bool SearchByDescription { get; set; } = false;
+
     /// <summary>Enable filter tabs for categories.</summary>
     public bool EnableTab_Category { get; set; } = true;
 
@@ -46,6 +49,7 @@ internal sealed class ModConfig
         EnableSearchAndFilters = true;
         EnableSearch = true;
         SearchBoxOffset = Vector2.Zero;
+        SearchByDescription = false;
         // stack count
         StackCount_5 = 5;
         StackCount_25 = 25;
@@ -156,6 +160,13 @@ internal sealed class ModConfig
                 setValue: (value) => EnableSearch = value,
                 name: I18n.Config_EnableSearch_Name,
                 tooltip: I18n.Config_EnableSearch_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => SearchByDescription,
+                setValue: (value) => SearchByDescription = value,
+                name: I18n.Config_SearchByDescription_Name,
+                tooltip: I18n.Config_SearchByDescription_Description
             );
             GMCM.AddTextOption(
                 mod,

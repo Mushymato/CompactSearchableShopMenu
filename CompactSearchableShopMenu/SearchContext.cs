@@ -60,6 +60,16 @@ internal sealed class SearchContext : IDisposable
     private static bool Filter_Category(int category, ISalable salable) =>
         ShouldIncludeRecipe(salable) && salable is Item item && item.Category == category;
 
+    // Search functions
+    private static bool SearchSalables(string searchText, ISalable salable)
+    {
+        if (salable.DisplayName.ContainsIgnoreCase(searchText))
+            return true;
+        if (ModEntry.Config.SearchByDescription && salable.getDescription().ContainsIgnoreCase(searchText))
+            return true;
+        return false;
+    }
+
     private static bool ShouldIncludeRecipe(ISalable salable)
     {
         if (ModEntry.Config.EnableTab_Recipes)
@@ -369,10 +379,9 @@ internal sealed class SearchContext : IDisposable
         {
             string searchText = searchBox.Text;
             if (!string.IsNullOrEmpty(searchText))
-                forSale = forSale.Where(fs => fs.DisplayName.ContainsIgnoreCase(searchText));
+                forSale = forSale.Where(fs => SearchSalables(searchText, fs));
         }
         Shop.forSale = forSale.ToList();
-        Shop.currentItemIndex = 0;
         Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
     }
 
@@ -383,6 +392,8 @@ internal sealed class SearchContext : IDisposable
 
         if (!searchBox.Selected)
         {
+            Shop.currentItemIndex = 0;
+            Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
             searchBox.Text = "";
             searchBox.SelectMe();
         }
@@ -402,7 +413,6 @@ internal sealed class SearchContext : IDisposable
         {
             if (filterCurrent == NO_FILTER)
             {
-                Shop.currentItemIndex = Math.Min(Shop.currentItemIndex, forSaleAll.Count - Patches.PerRowR);
                 Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
                 Shop.forSale = forSaleAll;
                 forSaleAll = null;
@@ -445,6 +455,8 @@ internal sealed class SearchContext : IDisposable
                 filterCurrent = clickedFilter;
                 if (filterCurrent != prevFilter)
                 {
+                    Shop.currentItemIndex = 0;
+                    Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
                     DoSearch();
                 }
             }

@@ -15,6 +15,8 @@
   "config.EnableSearchAndFilters.description": "Enable search box and category tabs (if the shop does not already have side tabs), this setting overrides the following ones.",
   "config.EnableSearch.name": "Enable Search",
   "config.EnableSearch.description": "Enable search box.",
+  "config.SearchByDescription.name": "Search By Description",
+  "config.SearchByDescription.description": "Include item description in search.",
   "config.SearchBoxOffset.name": "Search Box Offset",
   "config.SearchBoxOffset.description": "Adjust the search box's position (default 0 0).",
   "config.EnableTab.Category.name": "Enable Tabs: Categories",

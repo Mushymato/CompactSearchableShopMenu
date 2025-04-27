@@ -28,6 +28,8 @@ There are many shop menu mods out there and this mod is really just a combinatio
 
 - `Enable Search`: Enable search box.
 
+- `Search By Description`: Include item description in search.
+
 - `Search Box Offset`: Adjust the search box's position (default 0 0).
 
 - `Enable Tabs: Categories`: Enable tabs based on item categories.

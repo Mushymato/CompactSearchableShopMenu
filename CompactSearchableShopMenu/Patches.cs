@@ -64,11 +64,6 @@ internal static class Patches
 
         try
         {
-            // stop rebuilding neighbor ids all the time
-            harmony.Patch(
-                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.updateSaleButtonNeighbors)),
-                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_updateSaleButtonNeighbors_Prefix))
-            );
             // redo for sale ClickableComponent
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), "Initialize"),
@@ -90,6 +85,11 @@ internal static class Patches
         {
             try
             {
+                // stop rebuilding neighbor ids all the time
+                harmony.Patch(
+                    original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.updateSaleButtonNeighbors)),
+                    prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_updateSaleButtonNeighbors_Prefix))
+                );
                 // scrolling snap behavior
                 harmony.Patch(
                     original: AccessTools.DeclaredMethod(typeof(ShopMenu), "downArrowPressed"),
@@ -227,7 +227,7 @@ internal static class Patches
         {
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_transpiler))
+                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_Transpiler))
             );
         }
         catch (Exception ex)
@@ -252,6 +252,10 @@ internal static class Patches
     private static void ShopMenu_setScrollBarToCurrentIndex_Prefix(ShopMenu __instance)
     {
         SetPerRow(perRow.Value, __instance.forSale.Count);
+        __instance.currentItemIndex = Math.Min(
+            __instance.currentItemIndex,
+            Math.Max(__instance.forSale.Count - PerRowR, 0)
+        );
     }
 
     private static void OnWarped(object? sender, WarpedEventArgs e)
@@ -598,7 +602,7 @@ internal static class Patches
         return buyCount;
     }
 
-    public static int GetBuyStackCount(ShopMenu shopMenu, ItemStockInformation stockInformation)
+    public static int GetBuyStackCount(ShopMenu shopMenu, ItemStockInformation stockInformation, ISalable salable)
     {
         if (!Game1.oldKBState.IsKeyDown(Keys.LeftShift))
         {
@@ -629,6 +633,7 @@ internal static class Patches
             );
         }
         buyCount = ApplyTradeItemStackCountCap(buyCount, stockInformation);
+        buyCount = Math.Min(buyCount, salable.maximumStackSize());
 
         return buyCount;
     }
@@ -685,16 +690,18 @@ internal static class Patches
         }
         if (salable.Stack > 1)
         {
-            if (perRow.Value >= 8)
+            if (perRow.Value > 6)
             {
-                DrawShadowOrBoldText(
+                Utility.drawTinyDigits(
+                    salable.Stack,
                     b,
-                    "x" + salable.Stack,
-                    new Vector2(x - 36, y),
-                    color,
-                    alpha,
-                    layerDepth,
-                    Game1.smallFont
+                    new Vector2(
+                        component.bounds.Right - Utility.getWidthOfTinyDigitString(salable.Stack, 3f) - 12,
+                        component.bounds.Top + 14
+                    ),
+                    3f,
+                    1f,
+                    color ?? Color.White
                 );
             }
             else
@@ -703,7 +710,7 @@ internal static class Patches
             }
         }
 
-        int buyCount = GetBuyStackCount(shopMenu, stockInformation);
+        int buyCount = GetBuyStackCount(shopMenu, stockInformation, salable);
         if (buyCount > 1)
         {
             DrawShadowOrBoldText(
@@ -1081,7 +1088,7 @@ internal static class Patches
 
     private static int Get_StackCount_999() => ModEntry.Config.StackCount_999;
 
-    private static IEnumerable<CodeInstruction> ShopMenu_receiveLeftClick_transpiler(
+    private static IEnumerable<CodeInstruction> ShopMenu_receiveLeftClick_Transpiler(
         IEnumerable<CodeInstruction> instructions,
         ILGenerator generator
     )

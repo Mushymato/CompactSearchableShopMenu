@@ -19,6 +19,8 @@
   "config.EnableSearch.description": "启用搜索框。",
   "config.SearchBoxOffset.name": "搜索框偏移",
   "config.SearchBoxOffset.description": "调整搜索框的位置（默认0 0）",
+  "config.SearchByDescription.name": "搜素包括描述",
+  "config.SearchByDescription.description": "搜素关键词包括物品描述",
   "config.EnableTab.Category.name": "启用选项卡：类别",
   "config.EnableTab.Category.description": "启用物品类别的选项卡。",
   "config.EnableTab.DetailedSeeds.name": "启用选项卡：详细种子分类",
