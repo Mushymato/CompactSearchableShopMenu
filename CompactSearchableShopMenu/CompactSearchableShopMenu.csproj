@@ -16,7 +16,7 @@
     <Description>Compact and searchable shop menu for people with 2147483647 mods.</Description>
     <UniqueId>mushymato.CompactSearchableShopMenu</UniqueId>
     <UpdateKeys>Nexus:33271</UpdateKeys>
-    <Version>0.3.2</Version>
+    <Version>0.3.3</Version>
     <MinimumApiVersion_Behavior>UpdateFull</MinimumApiVersion_Behavior>
     <MinimumGameVersion_Behavior>UpdateFull</MinimumGameVersion_Behavior>
     <Dependencies_VersionBehavior>UpdateFull</Dependencies_VersionBehavior>

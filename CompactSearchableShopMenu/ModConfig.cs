@@ -38,7 +38,10 @@ internal sealed class ModConfig
     /// <summary>Enable filter tabs that separate seeds into crop, fruit tree seed, and custom bush.</summary>
     public bool EnableTab_DetailedSeeds { get; set; } = true;
 
-    /// <summary>Enable filter tabs for recipe.</summary>
+    /// <summary>Enable filter tab to separate seeds plantable this season from others.</summary>
+    public bool EnableTab_PlantableSeeds { get; set; } = true;
+
+    /// <summary>Enable filter tab for recipe.</summary>
     public bool EnableTab_Recipes { get; set; } = true;
 
     /// <summary>Restore default config values</summary>
@@ -57,6 +60,7 @@ internal sealed class ModConfig
         // tabs
         EnableTab_Category = true;
         EnableTab_DetailedSeeds = true;
+        EnableTab_PlantableSeeds = true;
         EnableTab_Recipes = true;
     }
 
@@ -199,6 +203,13 @@ internal sealed class ModConfig
                 setValue: (value) => EnableTab_DetailedSeeds = value,
                 name: I18n.Config_EnableTab_DetailedSeeds_Name,
                 tooltip: I18n.Config_EnableTab_DetailedSeeds_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableTab_PlantableSeeds,
+                setValue: (value) => EnableTab_PlantableSeeds = value,
+                name: I18n.Config_EnableTab_PlantableSeeds_Name,
+                tooltip: I18n.Config_EnableTab_PlantableSeeds_Description
             );
             GMCM.AddBoolOption(
                 mod,

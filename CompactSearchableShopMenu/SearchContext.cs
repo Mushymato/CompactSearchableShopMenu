@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using StardewValley;
 using StardewValley.Extensions;
+using StardewValley.GameData.Crops;
 using StardewValley.Menus;
 
 namespace CompactSearchableShopMenu;
@@ -15,6 +16,7 @@ internal sealed class SearchContext : IDisposable
     internal const string CATEGORY_PREFIX = "category_";
     internal const string RECIPES = "recipes";
     internal static readonly string CATEGORY_SEEDS = string.Concat(CATEGORY_PREFIX, SObject.SeedsCategory.ToString());
+    internal const string SEEDS_CROP_PLANTABLE = "seeds_crop_plantable";
     internal const string SEEDS_CROP = "seeds_crop";
     internal const string SEEDS_TREE = "seeds_tree";
     internal const string SEEDS_BUSH = "seeds_bush";
@@ -77,11 +79,39 @@ internal sealed class SearchContext : IDisposable
         return true;
     }
 
-    private static bool Filter_SeedCrop(ISalable salable) =>
-        ShouldIncludeRecipe(salable)
-        && salable is SObject obj
-        && obj.Category == SObject.SeedsCategory
-        && !(obj.IsTeaSapling() || obj.IsWildTreeSapling() || obj.IsFruitTreeSapling());
+    private static bool CheckPlantableThisSeason(ISalable salable)
+    {
+        if (salable is not SObject obj || !Crop.TryGetData(obj.ItemId, out CropData data))
+            return false;
+        return data.Seasons.Contains(Game1.season);
+    }
+
+    private static bool ShouldIncludePlantable(ISalable salable)
+    {
+        if (ModEntry.Config.EnableTab_PlantableSeeds)
+        {
+            return !CheckPlantableThisSeason(salable);
+        }
+        return true;
+    }
+
+    private static bool Filter_SeedCrop_Shared(ISalable salable)
+    {
+        return ShouldIncludeRecipe(salable)
+            && salable is SObject obj
+            && obj.Category == SObject.SeedsCategory
+            && !(obj.IsTeaSapling() || obj.IsWildTreeSapling() || obj.IsFruitTreeSapling());
+    }
+
+    private static bool Filter_SeedCrop(ISalable salable)
+    {
+        return Filter_SeedCrop_Shared(salable) && ShouldIncludePlantable(salable);
+    }
+
+    private static bool Filter_SeedCrop_Plantable(ISalable salable)
+    {
+        return Filter_SeedCrop_Shared(salable) && CheckPlantableThisSeason(salable);
+    }
 
     private static bool Filter_SeedTree(ISalable salable) =>
         ShouldIncludeRecipe(salable) && salable is SObject obj && (obj.IsWildTreeSapling() || obj.IsFruitTreeSapling());
@@ -192,6 +222,21 @@ internal sealed class SearchContext : IDisposable
                         Filter_SeedCrop
                     );
                     filterTabsOrder.Insert(0, SEEDS_CROP);
+                }
+            }
+
+            if (ModEntry.Config.EnableTab_PlantableSeeds)
+            {
+                if (Shop.forSale.FirstOrDefault(Filter_SeedCrop_Plantable) is Item seedCropItem)
+                {
+                    filterTabs[SEEDS_CROP_PLANTABLE] = new(
+                        new(RECIPES, Rectangle.Empty, "", SEEDS_CROP_PLANTABLE, tabTexture, tabSourceRect, 4f, false)
+                        {
+                            item = seedCropItem,
+                        },
+                        Filter_SeedCrop_Plantable
+                    );
+                    filterTabsOrder.Insert(0, SEEDS_CROP_PLANTABLE);
                 }
             }
 

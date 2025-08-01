@@ -23,6 +23,8 @@
   "config.EnableTab.Category.description": "Enable tabs based on item categories.",
   "config.EnableTab.DetailedSeeds.name": "Enable Tabs: Detailed Seeds",
   "config.EnableTab.DetailedSeeds.description": "Enable separate tabs for crop/tree/bush seeds.",
+  "config.EnableTab.PlantableSeeds.name": "Enable Tabs: Plantable Seeds",
+  "config.EnableTab.PlantableSeeds.description": "Enable separate tabs for crop seeds plantable this season, only the global season is considered.",
   "config.EnableTab.Recipes.name": "Enable Tab: Recipes",
   "config.EnableTab.Recipes.description": "Enable separate tab for recipes.",
   // config fail messages

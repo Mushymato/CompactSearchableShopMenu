@@ -5,8 +5,6 @@
   "config.ShopItemPerRow.description": "当物品有价钱时(普通商店)，使用这个列数。",
   "config.DresserItemPerRow.name": "柜子每行物品数",
   "config.DresserItemPerRow.description": "当物品没有价钱时(柜子，家具目录)，使用这个列数。",
-  "config.StackCount.name": "Shift+Ctrl购买数",
-  "config.StackCount.description": "用Shift+Ctrl时购买的数量(原版25)。",
   "config.StackCount.5.name": "Shift购买数",
   "config.StackCount.5.description": "用左键和Shift时购买的数量(原版5)。",
   "config.StackCount.25.name": "Shift+Ctrl购买数",
@@ -25,6 +23,8 @@
   "config.EnableTab.Category.description": "启用物品类别的选项卡。",
   "config.EnableTab.DetailedSeeds.name": "启用选项卡：详细种子分类",
   "config.EnableTab.DetailedSeeds.description": "启用将种子分为作物，树，和灌物的选项卡",
+  "config.EnableTab.PlantableSeeds.name": "启用选项卡：可种植种子分类",
+  "config.EnableTab.PlantableSeeds.description": "启用把当季可种植种子分为单独类的选项卡，只考虑全局季节。",
   "config.EnableTab.Recipes.name": "启用选项卡：配方",
   "config.EnableTab.Recipes.description": "启用配方的单独选项卡。",
   // config fail messages

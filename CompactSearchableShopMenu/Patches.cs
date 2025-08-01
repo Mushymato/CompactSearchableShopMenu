@@ -208,7 +208,7 @@ internal static class Patches
             );
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.drawCurrency)),
-                prefix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_drawCurrency_Prefix))
+                finalizer: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_drawCurrency_Finalizer))
             );
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.update)),
@@ -306,7 +306,7 @@ internal static class Patches
         return SearchContext?.OnGamePadButton(button) ?? true;
     }
 
-    private static void ShopMenu_drawCurrency_Prefix(SpriteBatch b)
+    private static void ShopMenu_drawCurrency_Finalizer(SpriteBatch b)
     {
         SearchContext?.Draw(b);
     }
