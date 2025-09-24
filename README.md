@@ -59,6 +59,8 @@ Additional translations are greatly appreciated. If you would like to get DP for
 
 - For mod makers who used a custom shop visual theme, you can include compatibility by loading a custom tab texture to `mushymato.CompactSearchableShopMenu/tab/<yourShopId>`, 16x16 is the recommended size.
 
+- The icon used for tab that don't have associated item (i.e. the uncategorized tab) is created from `LooseSprites/Cursors` at `330,357,7,13`. It can be edited via content patcher by targeting `mushymato.CompactSearchableShopMenu/icon/default`
+
 - [Happy Home Designer](https://www.nexusmods.com/stardewvalley/mods/19675) implements a completely custom menu, so it takes precedence over this mod for catalogues (as it should).
 
 ### Incompatible Mods

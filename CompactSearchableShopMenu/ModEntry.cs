@@ -1,9 +1,11 @@
 global using SObject = StardewValley.Object;
 using HarmonyLib;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Extensions;
 
 namespace CompactSearchableShopMenu;
 
@@ -57,8 +59,31 @@ public class ModEntry : Mod
         }
         if (e.NameWithoutLocale.IsEquivalentTo(DefaultTabIconName))
         {
-            e.LoadFromModFile<Texture2D>("assets/icon/default.png", AssetLoadPriority.Low);
+            e.LoadFrom(LoadDefaultTabIcon, AssetLoadPriority.Low);
         }
+    }
+
+    private Texture2D LoadDefaultTabIcon()
+    {
+        Texture2D tx = new(Game1.graphics.GraphicsDevice, 16, 16);
+        Color[] array = new Color[tx.GetElementCount()];
+        for (int i = 0; i < tx.GetElementCount(); i++)
+        {
+            array[i] = Color.Transparent;
+        }
+        Color[] cursorsData = new Color[Game1.mouseCursors.GetElementCount()];
+        int defaultIconWidth = tx.ActualWidth;
+        int cursorsWidth = Game1.mouseCursors.ActualWidth;
+        Game1.mouseCursors.GetData(cursorsData);
+        for (int x = 0; x < 7; x++)
+        {
+            for (int y = 0; y < 13; y++)
+            {
+                array[(2 + y) * defaultIconWidth + 5 + x] = cursorsData[(357 + y) * cursorsWidth + 330 + x];
+            }
+        }
+        tx.SetData(array);
+        return tx;
     }
 
     /// <summary>SMAPI static monitor Log wrapper</summary>
