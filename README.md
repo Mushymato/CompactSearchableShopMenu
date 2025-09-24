@@ -38,6 +38,11 @@ There are many shop menu mods out there and this mod is really just a combinatio
 
 - `Enable Tab: Recipes`: Enable separate tab for recipes.
 
+- `Enable Tab: Special`: Enable special tab for mod added categories.
+
+- `Show Default Tab Icon`: Show an icon for case where the tab has no associated item.
+
+
 ## Translations
 
 - English
@@ -48,20 +53,21 @@ Additional translations are greatly appreciated. If you would like to get DP for
 
 ## Compatibility
 
-### Compatible Mods
+### Compatible Mods and Integrations
 
-- Any shops added through content patcher is compatible.
+Any shops added through content patcher is compatible.
 
-- This mod uses vanilla assets for most of it's UI elements, with exception of the tabs for QiGemShop and LostItem shop which have custom tab graphics created to match those shop's themes.
+[Happy Home Designer](https://www.nexusmods.com/stardewvalley/mods/19675) implements a completely custom menu, so it takes precedence over this mod for catalogues (as it should).
+
+This mod uses vanilla assets for most of it's UI elements, with exception of the tabs for QiGemShop and LostItem shop which have custom tab graphics created to match those shop's themes.
     - Those are loaded from the asset folder of this mod, but you can override it in content patcher by targeting:
         - `mushymato.CompactSearchableShopMenu/tab/QiGemShop` for `QiGemShop`
         - `mushymato.CompactSearchableShopMenu/tab/LostItems` for `LostItems`
+For mod makers who used a custom shop visual theme, you can include compatibility by loading a custom tab texture to `mushymato.CompactSearchableShopMenu/tab/<yourShopId>`, 16x16 is the recommended size.
 
-- For mod makers who used a custom shop visual theme, you can include compatibility by loading a custom tab texture to `mushymato.CompactSearchableShopMenu/tab/<yourShopId>`, 16x16 is the recommended size.
+The icon used for tab that don't have associated item (i.e. the uncategorized tab) is a 16x16 texture created from `LooseSprites/Cursors` at `330,357,7,13`. It can be edited via content patcher by targeting `mushymato.CompactSearchableShopMenu/icon/default`.
 
-- The icon used for tab that don't have associated item (i.e. the uncategorized tab) is created from `LooseSprites/Cursors` at `330,357,7,13`. It can be edited via content patcher by targeting `mushymato.CompactSearchableShopMenu/icon/default`
-
-- [Happy Home Designer](https://www.nexusmods.com/stardewvalley/mods/19675) implements a completely custom menu, so it takes precedence over this mod for catalogues (as it should).
+Mods can put their items into separate tab by adding context tag with format `cssm_tab_<special_tab_name>`.
 
 ### Incompatible Mods
 
