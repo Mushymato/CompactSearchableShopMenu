@@ -27,6 +27,10 @@
   "config.EnableTab.PlantableSeeds.description": "启用把当季可种植种子分为单独类的选项卡，只考虑全局季节。",
   "config.EnableTab.Recipes.name": "启用选项卡：配方",
   "config.EnableTab.Recipes.description": "启用配方的单独选项卡。",
+  "config.EnableTab.Special.name": "启用选项卡：特殊",
+  "config.EnableTab.Special.description": "启用由其他模组添加的选项卡。",
+  "config.ShowDefaultTabIcon.name": "显示默认选项卡图标",
+  "config.ShowDefaultTabIcon.description": "当标签没有对应物品时，显示默认图标。",
   // config fail messages
   "config.failed.Grid": "商店物品格子化失败，请将此错误其报告到MOD页面。",
   "config.failed.StackCount": "商店购买数量更改失败，请将此错误其报告到MOD页面。",
