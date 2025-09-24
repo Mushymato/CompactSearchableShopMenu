@@ -10,6 +10,7 @@ using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
 using StardewValley.Menus;
+using StardewValley.Objects;
 
 namespace CompactSearchableShopMenu;
 
@@ -638,6 +639,43 @@ internal static class Patches
         return buyCount;
     }
 
+    private static readonly MethodInfo? Furniture_getScaleSize = AccessTools.DeclaredMethod(
+        typeof(Furniture),
+        "getScaleSize"
+    );
+
+    private static float TryGetScaleSize(Furniture furniture)
+    {
+        if (Furniture_getScaleSize?.Invoke(furniture, null) is float scaleSize)
+            return scaleSize;
+        return 1f;
+    }
+
+    private static void DrawSaleIcon(
+        ISalable salable,
+        SpriteBatch b,
+        Vector2 location,
+        float scaleSize,
+        float transparency,
+        float layerDepth,
+        StackDrawType drawStackNumber,
+        Color color,
+        bool drawShadow
+    )
+    {
+        if (salable is Furniture furniture)
+        {
+            //overrideScale = 64f / maxLen;
+            int maxLen = Math.Max(furniture.defaultSourceRect.Value.Width, furniture.defaultSourceRect.Value.Height);
+            float scaledLen = 64f / (scaleSize * TryGetScaleSize(furniture));
+            if (maxLen > scaledLen)
+            {
+                scaleSize = scaledLen / maxLen;
+            }
+        }
+        salable.drawInMenu(b, location, scaleSize, transparency, layerDepth, drawStackNumber, color, drawShadow);
+    }
+
     public static void DrawDisplayNameAndBuyCount(
         SpriteBatch b,
         string s,
@@ -891,7 +929,16 @@ internal static class Patches
         int count
     )
     {
-        if (perRow.Value <= 2)
+        int perRowV = perRow.Value;
+        int maxLen = Math.Max(sourceRect.Width, sourceRect.Height);
+        float scaledLen = perRowV <= 2 ? 32f : 16f;
+        float scaleAdj = perRowV <= 2 ? 4f : 2f;
+        if (maxLen > scaledLen)
+        {
+            ModEntry.LogOnce($"{scaledLen} / {maxLen} = {scaledLen / maxLen}");
+            scaleAdj = 4f * scaledLen / maxLen;
+        }
+        if (perRowV <= 2)
         {
             Utility.drawWithShadow(
                 b,
@@ -901,7 +948,7 @@ internal static class Patches
                 color,
                 rotation,
                 origin,
-                scale,
+                scaleAdj,
                 flipped,
                 layerDepth,
                 horizontalShadowOffset,
@@ -909,22 +956,22 @@ internal static class Patches
                 shadowIntensity
             );
         }
-        else if (perRow.Value <= ROW_SHOW_PRICE)
+        else if (perRowV <= ROW_SHOW_PRICE)
         {
-            SpriteFont spriteFont = perRow.Value <= 4 ? Game1.dialogueFont : Game1.smallFont;
+            SpriteFont spriteFont = perRowV <= 4 ? Game1.dialogueFont : Game1.smallFont;
             Vector2 stringSize = spriteFont.MeasureString("x" + count);
             Utility.drawWithShadow(
                 b,
                 texture,
                 new Vector2(
-                    component.bounds.Right - stringSize.X - 24 - sourceRect.Width * 2,
-                    component.bounds.Bottom - sourceRect.Height * 2 - 16
+                    component.bounds.Right - stringSize.X - 24 - sourceRect.Width * scaleAdj,
+                    component.bounds.Bottom - sourceRect.Height * scaleAdj - 16
                 ),
                 sourceRect,
                 color,
                 rotation,
                 origin,
-                2f,
+                scaleAdj,
                 flipped,
                 layerDepth,
                 horizontalShadowOffset,
@@ -971,16 +1018,20 @@ internal static class Patches
         );
         CodeInstruction ldlocClickableComponent = matcher.Instruction;
 
-        // // IL_0242: ldloc.s 6
-        // // IL_0244: callvirt instance bool StardewValley.ISalable::ShouldDrawIcon()
-        // // IL_0249: brfalse IL_04e7
-        // matcher.MatchStartForward(
-        //     [
-        //         new(inst => inst.IsLdloc()),
-        //         new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.ShouldDrawIcon))),
-        //         new(OpCodes.Brfalse),
-        //     ]
-        // );
+        // IL_030f: callvirt instance void StardewValley.ISalable::drawInMenu(class [MonoGame.Framework]Microsoft.Xna.Framework.Graphics.SpriteBatch, valuetype [MonoGame.Framework]Microsoft.Xna.Framework.Vector2, float32, float32, float32, valuetype StardewValley.StackDrawType, valuetype [MonoGame.Framework]Microsoft.Xna.Framework.Color, bool)
+        // IL_0314: ldloc.s 16
+        // IL_0316: ldc.i4 2147483647
+        // IL_031b: beq.s IL_0375
+        matcher.MatchStartForward(
+            [
+                new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.drawInMenu))),
+                new(inst => inst.IsLdloc()),
+                new(OpCodes.Ldc_I4, int.MaxValue),
+                new(OpCodes.Beq_S),
+            ]
+        );
+        matcher.Opcode = OpCodes.Call;
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawSaleIcon));
 
         // display name text
         matcher

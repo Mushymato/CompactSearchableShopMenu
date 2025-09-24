@@ -44,6 +44,12 @@ internal sealed class ModConfig
     /// <summary>Enable filter tab for recipe.</summary>
     public bool EnableTab_Recipes { get; set; } = true;
 
+    /// <summary>Enable filter tab special mod added category.</summary>
+    public bool EnableTab_Special { get; set; } = true;
+
+    /// <summary>Show a default icon when tab does not have associated item.</summary>
+    public bool ShowDefaultTabIcon { get; set; } = true;
+
     /// <summary>Restore default config values</summary>
     private void Reset()
     {
@@ -62,6 +68,7 @@ internal sealed class ModConfig
         EnableTab_DetailedSeeds = true;
         EnableTab_PlantableSeeds = true;
         EnableTab_Recipes = true;
+        EnableTab_Special = true;
     }
 
     /// <summary>Add mod config to GMCM if available</summary>
@@ -217,6 +224,20 @@ internal sealed class ModConfig
                 setValue: (value) => EnableTab_Recipes = value,
                 name: I18n.Config_EnableTab_Recipes_Name,
                 tooltip: I18n.Config_EnableTab_Recipes_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableTab_Special,
+                setValue: (value) => EnableTab_Special = value,
+                name: I18n.Config_EnableTab_Special_Name,
+                tooltip: I18n.Config_EnableTab_Special_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => ShowDefaultTabIcon,
+                setValue: (value) => ShowDefaultTabIcon = value,
+                name: I18n.Config_ShowDefaultTabIcon_Name,
+                tooltip: I18n.Config_ShowDefaultTabIcon_Description
             );
         }
         else

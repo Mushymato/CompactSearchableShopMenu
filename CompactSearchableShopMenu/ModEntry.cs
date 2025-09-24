@@ -3,6 +3,7 @@ using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
+using StardewValley;
 
 namespace CompactSearchableShopMenu;
 
@@ -18,6 +19,9 @@ public class ModEntry : Mod
     internal static string ModId = null!;
 
     internal static bool HasMod_BiggerBackpack = false;
+
+    private const string DefaultTabIconName = "mushymato.CompactSearchableShopMenu/icon/default";
+    internal static Texture2D DefaultTabIcon => Game1.content.Load<Texture2D>(DefaultTabIconName);
 
     public override void Entry(IModHelper helper)
     {
@@ -50,6 +54,10 @@ public class ModEntry : Mod
             );
             if (File.Exists(tabAssetPath))
                 e.LoadFromModFile<Texture2D>(tabAssetPath, AssetLoadPriority.Low);
+        }
+        if (e.NameWithoutLocale.IsEquivalentTo(DefaultTabIconName))
+        {
+            e.LoadFromModFile<Texture2D>("assets/icon/default.png", AssetLoadPriority.Low);
         }
     }
 

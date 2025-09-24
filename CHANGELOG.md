@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - wip
+
+### Added
+
+- Mods can now add context tag that starts with "cssm_tab_" (for example "cssm_tab_catalogue") to be sorted into a separate tab.
+- New default tab icon for the case where the tab has no associated item, can be disabled via config.
+
+### Change
+
+- Improve furniture draw in shop menu to prevent overflows.
+
+## [0.3.3] - 2025-08-01
+
+### Added
+
+- New tab option sort seeds for current season to separate tab.
+
 ## [0.3.2] - 2025-04-26
 
 ### Added

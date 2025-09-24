@@ -20,6 +20,7 @@ internal sealed class SearchContext : IDisposable
     internal const string SEEDS_CROP = "seeds_crop";
     internal const string SEEDS_TREE = "seeds_tree";
     internal const string SEEDS_BUSH = "seeds_bush";
+    internal const string CSSM_TAB_PREFIX = "cssm_tab_";
     internal static readonly Rectangle cursorsTabsSourceRect = new(16, 368, 16, 16);
     internal static readonly Rectangle recipeSourceRect = Game1.getSourceRectForStandardTileSheet(
         Game1.objectSpriteSheet,
@@ -54,24 +55,7 @@ internal sealed class SearchContext : IDisposable
     private string filterCurrent = NO_FILTER;
     private List<ISalable>? forSaleAll = null;
 
-    // Filter functions
-    private static bool Filter_Nop(ISalable salable) => throw new NotImplementedException();
-
-    private static bool Filter_Recipe(ISalable salable) => salable.IsRecipe;
-
-    private static bool Filter_Category(int category, ISalable salable) =>
-        ShouldIncludeRecipe(salable) && salable is Item item && item.Category == category;
-
-    // Search functions
-    private static bool SearchSalables(string searchText, ISalable salable)
-    {
-        if (salable.DisplayName.ContainsIgnoreCase(searchText))
-            return true;
-        if (ModEntry.Config.SearchByDescription && salable.getDescription().ContainsIgnoreCase(searchText))
-            return true;
-        return false;
-    }
-
+    // helpers
     private static bool ShouldIncludeRecipe(ISalable salable)
     {
         if (ModEntry.Config.EnableTab_Recipes)
@@ -93,6 +77,24 @@ internal sealed class SearchContext : IDisposable
             return !CheckPlantableThisSeason(salable);
         }
         return true;
+    }
+
+    // Filter functions
+    private static bool Filter_Nop(ISalable salable) => throw new NotImplementedException();
+
+    private static bool Filter_Recipe(ISalable salable) => salable.IsRecipe;
+
+    private static bool Filter_Category(int category, ISalable salable) =>
+        ShouldIncludeRecipe(salable) && salable is Item item && item.Category == category;
+
+    private static bool Filter_SpecialContextTag(string ctag, ISalable salable)
+    {
+        if (salable is Item item && item.HasContextTag(ctag))
+        {
+            ModEntry.Log($"{item.QualifiedItemId}: {ctag}");
+            return true;
+        }
+        return false;
     }
 
     private static bool Filter_SeedCrop_Shared(ISalable salable)
@@ -118,6 +120,16 @@ internal sealed class SearchContext : IDisposable
 
     private static bool Filter_SeedBush(ISalable salable) =>
         ShouldIncludeRecipe(salable) && salable is SObject obj && obj.IsTeaSapling();
+
+    // Search functions
+    private static bool SearchSalables(string searchText, ISalable salable)
+    {
+        if (salable.DisplayName.ContainsIgnoreCase(searchText))
+            return true;
+        if (ModEntry.Config.SearchByDescription && salable.getDescription().ContainsIgnoreCase(searchText))
+            return true;
+        return false;
+    }
 
     internal SearchContext(ShopMenu shopMenu)
     {
@@ -253,6 +265,36 @@ internal sealed class SearchContext : IDisposable
                     );
                     filterTabsOrder.Add(RECIPES);
                 }
+            }
+
+            if (ModEntry.Config.EnableTab_Special)
+            {
+                Dictionary<string, Item> specialTags = [];
+                foreach (var sale in Shop.forSale)
+                {
+                    if (sale is not Item item)
+                    {
+                        continue;
+                    }
+                    foreach (string ctag in item.GetContextTags())
+                    {
+                        if (!specialTags.ContainsKey(ctag) && ctag.StartsWithIgnoreCase(CSSM_TAB_PREFIX))
+                        {
+                            specialTags[ctag] = item;
+                        }
+                    }
+                }
+                foreach ((string ctag, Item item) in specialTags)
+                {
+                    filterTabs[ctag] = new(
+                        new(item.Category.ToString(), Rectangle.Empty, "", ctag, tabTexture, tabSourceRect, 4f, false)
+                        {
+                            item = item,
+                        },
+                        (salable) => Filter_SpecialContextTag(ctag, salable)
+                    );
+                }
+                filterTabsOrder.AddRange(specialTags.Keys.OrderBy(ctag => ctag));
             }
 
             if (filterTabsOrder.Count > 1)
@@ -537,8 +579,24 @@ internal sealed class SearchContext : IDisposable
                 continue;
             ctc.draw(b);
             if (ctc.item == null)
-                continue;
-            if (ctc.item.IsRecipe)
+            {
+                if (ModEntry.Config.ShowDefaultTabIcon)
+                {
+                    Texture2D tx = ModEntry.DefaultTabIcon;
+                    b.Draw(
+                        tx,
+                        new(ctc.bounds.X + 8, ctc.bounds.Y + 12),
+                        tx.Bounds,
+                        Color.White,
+                        0f,
+                        Vector2.Zero,
+                        3f,
+                        SpriteEffects.None,
+                        0.9f
+                    );
+                }
+            }
+            else if (ctc.item.IsRecipe)
             {
                 b.Draw(
                     Game1.objectSpriteSheet,

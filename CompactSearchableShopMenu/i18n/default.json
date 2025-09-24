@@ -27,6 +27,10 @@
   "config.EnableTab.PlantableSeeds.description": "Enable separate tabs for crop seeds plantable this season, only the global season is considered.",
   "config.EnableTab.Recipes.name": "Enable Tab: Recipes",
   "config.EnableTab.Recipes.description": "Enable separate tab for recipes.",
+  "config.EnableTab.Special.name": "Enable Tab: Special",
+  "config.EnableTab.Special.description": "Enable mod added tabs.",
+  "config.ShowDefaultTabIcon.name": "Show Default Tab Icon",
+  "config.ShowDefaultTabIcon.description": "Show a default icon when the tab has no associated item, this is sourced from 'mushymato.CompactSearchableShopMenu/icon/default' which you can edit via content patcher.",
   // config fail messages
   "config.failed.Grid": "Failed to apply shop grid features, please report this to the mod page.",
   "config.failed.StackCount": "Failed to apply shop stack count features, please report this to the mod page.",
