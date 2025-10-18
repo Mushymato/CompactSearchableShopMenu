@@ -54,7 +54,7 @@ public class ModEntry : Mod
                 "tab",
                 string.Concat(Path.GetFileName(e.NameWithoutLocale.BaseName), ".png")
             );
-            if (File.Exists(tabAssetPath))
+            if (File.Exists(Path.Combine(Helper.DirectoryPath, tabAssetPath)))
                 e.LoadFromModFile<Texture2D>(tabAssetPath, AssetLoadPriority.Low);
         }
         if (e.NameWithoutLocale.IsEquivalentTo(DefaultTabIconName))
