@@ -16,10 +16,13 @@ namespace CompactSearchableShopMenu;
 
 internal static class Patches
 {
+    private const int ROW_SHOW_NAME = 1;
+    private const int ROW_SHOW_ORIG = 2;
+    private const int ROW_SHOW_COUNT = 6;
     private const int ROW_SHOW_PRICE = 6;
-    private static readonly PerScreen<int> perRow = new();
+    private const int ROW_SHOW_PRICE_BIG = 4;
+    internal static readonly PerScreen<int> perRow = new();
     private static readonly PerScreen<int> perRowR = new();
-    internal static int PerRowV => perRow.Value;
     internal static int PerRowR => perRowR.Value;
 
     internal static void SetPerRow(int perRowV, int forSaleCount)
@@ -340,25 +343,21 @@ internal static class Patches
         // currentItemIndex = Math.Min(Math.Max(0, forSale.Count - 4), Math.Max(0, (int)((float)forSale.Count * num)));
         CodeMatcher matcher = new(instructions, generator);
         matcher
-            .MatchEndForward(
-                [
-                    new(
-                        OpCodes.Call,
-                        AccessTools.DeclaredMethod(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])
-                    ),
-                    new(OpCodes.Stfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.currentItemIndex))),
-                ]
-            )
+            .MatchEndForward([
+                new(
+                    OpCodes.Call,
+                    AccessTools.DeclaredMethod(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])
+                ),
+                new(OpCodes.Stfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.currentItemIndex))),
+            ])
             .ThrowIfNotMatch("Failed to find 'currentItemIndex = Math.Min'")
-            .InsertAndAdvance(
-                [
-                    new(OpCodes.Ldarg_2),
-                    new(OpCodes.Ldarg_0),
-                    new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), "scrollBarRunner")),
-                    new(OpCodes.Ldarg_0),
-                    new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(LeftClickHeldIndex))),
-                ]
-            );
+            .InsertAndAdvance([
+                new(OpCodes.Ldarg_2),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), "scrollBarRunner")),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(LeftClickHeldIndex))),
+            ]);
 
         return matcher.Instructions();
     }
@@ -394,17 +393,12 @@ internal static class Patches
         // IL_0020: sub
         for (int i = 0; i < 10; i++)
         {
-            matcher.MatchEndForward(
-                [
-                    new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.forSale))),
-                    new(
-                        OpCodes.Callvirt,
-                        AccessTools.PropertyGetter(typeof(List<ISalable>), nameof(List<ISalable>.Count))
-                    ),
-                    new(OpCodes.Ldc_I4_4),
-                    new(OpCodes.Sub),
-                ]
-            );
+            matcher.MatchEndForward([
+                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.forSale))),
+                new(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(List<ISalable>), nameof(List<ISalable>.Count))),
+                new(OpCodes.Ldc_I4_4),
+                new(OpCodes.Sub),
+            ]);
             if (matcher.IsInvalid)
                 break;
             matcher.Advance(-1);
@@ -494,12 +488,10 @@ internal static class Patches
             new(OpCodes.Ble_S),
         ];
         matcher.MatchStartForward(matches).ThrowIfNotMatch("Failed to find 'tabButtons.Count > 0'");
-        matcher.InsertAndAdvance(
-            [
-                new(OpCodes.Ldarg_0),
-                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(MakeGridLikeSaleButtons))),
-            ]
-        );
+        matcher.InsertAndAdvance([
+            new(OpCodes.Ldarg_0),
+            new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(MakeGridLikeSaleButtons))),
+        ]);
         matcher.Advance(matches.Length - 1);
         Label lbl = (Label)matcher.Operand;
         matcher.Advance(1).Insert([new(OpCodes.Br, lbl)]);
@@ -697,7 +689,9 @@ internal static class Patches
         ISalable salable
     )
     {
-        if (perRow.Value <= 1)
+        int perRowV = perRow.Value;
+        bool shouldNotDrawIcon = !salable.ShouldDrawIcon();
+        if (perRowV <= ROW_SHOW_NAME)
         {
             SpriteText.drawString(
                 b,
@@ -715,20 +709,22 @@ internal static class Patches
                 color,
                 scroll_text_alignment
             );
-            return;
         }
-
-        if (!salable.ShouldDrawIcon())
+        else if (ModEntry.Config.AlwaysShowDisplayName || shouldNotDrawIcon)
         {
-            Vector2 stringSize = Game1.dialogueFont.MeasureString(s);
-            x -= 24;
-            y += (int)(stringSize.Y * 2 / 3);
+            Vector2 stringSize = Game1.smallFont.MeasureString(s);
+            if (shouldNotDrawIcon)
+                x -= 24;
+            else
+                x -= 10;
+            y += (int)(stringSize.Y * 2f / 3);
             DrawShadowOrBoldText(b, s, new Vector2(x, y), color, alpha, layerDepth, Game1.smallFont);
             x += (int)stringSize.X;
         }
+
         if (salable.Stack > 1)
         {
-            if (perRow.Value > 6)
+            if (perRowV > ROW_SHOW_COUNT)
             {
                 Utility.drawTinyDigits(
                     salable.Stack,
@@ -781,7 +777,8 @@ internal static class Patches
         ClickableComponent component
     )
     {
-        if (perRow.Value <= 2)
+        int perRowV = perRow.Value;
+        if (perRowV <= ROW_SHOW_ORIG)
         {
             SpriteText.drawString(
                 b,
@@ -800,9 +797,9 @@ internal static class Patches
                 scroll_text_alignment
             );
         }
-        else if (perRow.Value <= ROW_SHOW_PRICE)
+        else if (perRowV <= ROW_SHOW_PRICE)
         {
-            SpriteFont spriteFont = perRow.Value <= 4 ? Game1.dialogueFont : Game1.smallFont;
+            SpriteFont spriteFont = perRowV <= 4 ? Game1.dialogueFont : Game1.smallFont;
             Vector2 stringSize = spriteFont.MeasureString(s);
             Vector2 position = new(component.bounds.Right - stringSize.X - 32, component.bounds.Top + 12);
             DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth, spriteFont);
@@ -826,7 +823,8 @@ internal static class Patches
         ClickableComponent component
     )
     {
-        if (perRow.Value <= 2)
+        int perRowV = perRow.Value;
+        if (perRowV <= ROW_SHOW_ORIG)
         {
             Utility.drawWithShadow(
                 b,
@@ -844,7 +842,7 @@ internal static class Patches
                 shadowIntensity
             );
         }
-        else if (perRow.Value <= ROW_SHOW_PRICE)
+        else if (perRowV <= ROW_SHOW_PRICE)
         {
             Utility.drawWithShadow(
                 b,
@@ -882,7 +880,8 @@ internal static class Patches
         ClickableComponent component
     )
     {
-        if (perRow.Value <= 2)
+        int perRowV = perRow.Value;
+        if (perRowV <= ROW_SHOW_ORIG)
         {
             SpriteText.drawString(
                 b,
@@ -901,12 +900,14 @@ internal static class Patches
                 scroll_text_alignment
             );
         }
-        else if (perRow.Value <= ROW_SHOW_PRICE)
+        else if (perRowV <= ROW_SHOW_PRICE)
         {
-            SpriteFont spriteFont = perRow.Value <= 4 ? Game1.dialogueFont : Game1.smallFont;
+            SpriteFont spriteFont = perRowV <= ROW_SHOW_PRICE_BIG ? Game1.dialogueFont : Game1.smallFont;
             Vector2 stringSize = spriteFont.MeasureString(s);
-            Vector2 position =
-                new(component.bounds.Right - stringSize.X - 24, component.bounds.Bottom - stringSize.Y - 8);
+            Vector2 position = new(
+                component.bounds.Right - stringSize.X - 24,
+                component.bounds.Bottom - stringSize.Y - 8
+            );
             DrawShadowOrBoldText(b, s, position, color, alpha, layerDepth, spriteFont);
         }
     }
@@ -938,7 +939,7 @@ internal static class Patches
             ModEntry.LogOnce($"{scaledLen} / {maxLen} = {scaledLen / maxLen}");
             scaleAdj = 4f * scaledLen / maxLen;
         }
-        if (perRowV <= 2)
+        if (perRowV <= ROW_SHOW_ORIG)
         {
             Utility.drawWithShadow(
                 b,
@@ -992,13 +993,11 @@ internal static class Patches
         // IL_0191: ldloc.s 7
         // IL_0193: ldloc.s 6
         // IL_0195: call instance valuetype StardewValley.StackDrawType StardewValley.Menus.ShopMenu::GetStackDrawType(class StardewValley.ItemStockInformation, class StardewValley.ISalable)
-        matcher.MatchStartForward(
-            [
-                new(inst => inst.IsLdloc()),
-                new(inst => inst.IsLdloc()),
-                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.GetStackDrawType))),
-            ]
-        );
+        matcher.MatchStartForward([
+            new(inst => inst.IsLdloc()),
+            new(inst => inst.IsLdloc()),
+            new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.GetStackDrawType))),
+        ]);
         CodeInstruction ldlocItemStockInformation = matcher.Instruction;
         matcher.Advance(1);
         CodeInstruction ldlocSalable = matcher.Instruction;
@@ -1006,71 +1005,63 @@ internal static class Patches
         // IL_01b2: ldloc.s 4
         // IL_01b4: ldflda valuetype[MonoGame.Framework]Microsoft.Xna.Framework.Rectangle StardewValley.Menus.ClickableComponent::bounds
         // IL_01b9: ldfld int32[MonoGame.Framework]Microsoft.Xna.Framework.Rectangle::X
-        matcher.MatchStartForward(
-            [
-                new(inst => inst.IsLdloc()),
-                new(
-                    OpCodes.Ldflda,
-                    AccessTools.DeclaredField(typeof(ClickableComponent), nameof(ClickableComponent.bounds))
-                ),
-                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(Rectangle), nameof(Rectangle.X))),
-            ]
-        );
+        matcher.MatchStartForward([
+            new(inst => inst.IsLdloc()),
+            new(
+                OpCodes.Ldflda,
+                AccessTools.DeclaredField(typeof(ClickableComponent), nameof(ClickableComponent.bounds))
+            ),
+            new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(Rectangle), nameof(Rectangle.X))),
+        ]);
         CodeInstruction ldlocClickableComponent = matcher.Instruction;
 
         // IL_030f: callvirt instance void StardewValley.ISalable::drawInMenu(class [MonoGame.Framework]Microsoft.Xna.Framework.Graphics.SpriteBatch, valuetype [MonoGame.Framework]Microsoft.Xna.Framework.Vector2, float32, float32, float32, valuetype StardewValley.StackDrawType, valuetype [MonoGame.Framework]Microsoft.Xna.Framework.Color, bool)
         // IL_0314: ldloc.s 16
         // IL_0316: ldc.i4 2147483647
         // IL_031b: beq.s IL_0375
-        matcher.MatchStartForward(
-            [
-                new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.drawInMenu))),
-                new(inst => inst.IsLdloc()),
-                new(OpCodes.Ldc_I4, int.MaxValue),
-                new(OpCodes.Beq_S),
-            ]
-        );
+        matcher.MatchStartForward([
+            new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.drawInMenu))),
+            new(inst => inst.IsLdloc()),
+            new(OpCodes.Ldc_I4, int.MaxValue),
+            new(OpCodes.Beq_S),
+        ]);
         matcher.Opcode = OpCodes.Call;
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawSaleIcon));
 
         // display name text
         matcher
-            .MatchStartForward(
-                [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-            )
-            .InsertAndAdvance(
-                [
-                    ldlocClickableComponent.Clone(),
-                    new(OpCodes.Ldarg_0),
-                    ldlocItemStockInformation.Clone(),
-                    ldlocSalable.Clone(),
-                ]
-            );
+            .MatchStartForward([
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString))),
+            ])
+            .InsertAndAdvance([
+                ldlocClickableComponent.Clone(),
+                new(OpCodes.Ldarg_0),
+                ldlocItemStockInformation.Clone(),
+                ldlocSalable.Clone(),
+            ]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayNameAndBuyCount));
         matcher
-            .MatchStartForward(
-                [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-            )
-            .InsertAndAdvance(
-                [
-                    ldlocClickableComponent.Clone(),
-                    new(OpCodes.Ldarg_0),
-                    ldlocItemStockInformation.Clone(),
-                    ldlocSalable.Clone(),
-                ]
-            );
+            .MatchStartForward([
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString))),
+            ])
+            .InsertAndAdvance([
+                ldlocClickableComponent.Clone(),
+                new(OpCodes.Ldarg_0),
+                ldlocItemStockInformation.Clone(),
+                ldlocSalable.Clone(),
+            ]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawDisplayNameAndBuyCount));
 
         // price text + icon
         matcher
-            .MatchStartForward(
-                [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-            )
+            .MatchStartForward([
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString))),
+            ])
             .InsertAndAdvance([ldlocClickableComponent.Clone()]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawPrice));
-        matcher.MatchStartForward(
-            [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Utility), nameof(Utility.drawWithShadow)))]
-        );
+        matcher.MatchStartForward([
+            new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Utility), nameof(Utility.drawWithShadow))),
+        ]);
         matcher.Opcode = ldlocClickableComponent.opcode;
         matcher.Operand = ldlocClickableComponent.operand;
         matcher
@@ -1078,30 +1069,26 @@ internal static class Patches
             .InsertAndAdvance([new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawPriceIcon)))]);
 
         // trade item text + icon
-        matcher.MatchStartForward(
-            [
-                new(inst => inst.IsLdloc()),
-                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.HasTradeItem))),
-            ]
-        );
+        matcher.MatchStartForward([
+            new(inst => inst.IsLdloc()),
+            new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.HasTradeItem))),
+        ]);
         CodeInstruction ldlocCount = matcher.Instruction.Clone();
-        matcher.MatchStartForward(
-            [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Utility), nameof(Utility.drawWithShadow)))]
-        );
+        matcher.MatchStartForward([
+            new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Utility), nameof(Utility.drawWithShadow))),
+        ]);
         matcher.Opcode = ldlocClickableComponent.opcode;
         matcher.Operand = ldlocClickableComponent.operand;
         matcher
             .Advance(1)
-            .InsertAndAdvance(
-                [
-                    ldlocCount.Clone(),
-                    new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawTradeIcon))),
-                ]
-            );
+            .InsertAndAdvance([
+                ldlocCount.Clone(),
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawTradeIcon))),
+            ]);
         matcher
-            .MatchStartForward(
-                [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-            )
+            .MatchStartForward([
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString))),
+            ])
             .InsertAndAdvance([ldlocClickableComponent.Clone()]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawTradeCount));
 
@@ -1116,13 +1103,13 @@ internal static class Patches
         CodeMatcher matcher = new(instructions, generator);
 
         // display name text
-        matcher.MatchStartForward(
-            [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-        );
+        matcher.MatchStartForward([
+            new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString))),
+        ]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DontDrawDisplayName));
-        matcher.MatchStartForward(
-            [new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString)))]
-        );
+        matcher.MatchStartForward([
+            new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(SpriteText), nameof(SpriteText.drawString))),
+        ]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DontDrawDisplayName));
 
         return matcher.Instructions();
@@ -1156,22 +1143,17 @@ internal static class Patches
         // IL_05c2: br.s IL_05c9
         // IL_05c4: ldc.i4 999
         matcher
-            .MatchStartForward(
-                [
-                    new(OpCodes.Ldc_I4_5),
-                    new(OpCodes.Br_S),
-                    new(OpCodes.Ldsflda, AccessTools.DeclaredField(typeof(Game1), nameof(Game1.oldKBState))),
-                    new(OpCodes.Ldc_I4_S),
-                    new(
-                        OpCodes.Call,
-                        AccessTools.DeclaredMethod(typeof(KeyboardState), nameof(KeyboardState.IsKeyDown))
-                    ),
-                    new(OpCodes.Brtrue_S),
-                    new(OpCodes.Ldc_I4_S, (sbyte)25),
-                    new(OpCodes.Br_S),
-                    new(OpCodes.Ldc_I4, 999),
-                ]
-            )
+            .MatchStartForward([
+                new(OpCodes.Ldc_I4_5),
+                new(OpCodes.Br_S),
+                new(OpCodes.Ldsflda, AccessTools.DeclaredField(typeof(Game1), nameof(Game1.oldKBState))),
+                new(OpCodes.Ldc_I4_S),
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(KeyboardState), nameof(KeyboardState.IsKeyDown))),
+                new(OpCodes.Brtrue_S),
+                new(OpCodes.Ldc_I4_S, (sbyte)25),
+                new(OpCodes.Br_S),
+                new(OpCodes.Ldc_I4, 999),
+            ])
             .ThrowIfNotMatch("Failed to find 'big terrible 5 25 999 tertiary'");
         matcher.Opcode = OpCodes.Call;
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(Get_StackCount_5));
@@ -1190,24 +1172,19 @@ internal static class Patches
         // IL_066c: callvirt instance int32 StardewValley.ISalable::maximumStackSize()
         // IL_0671: call int32 [System.Runtime]System.Math::Min(int32, int32)
         matcher
-            .MatchEndForward(
-                [
-                    new(inst => inst.IsLdloc()),
-                    new(OpCodes.Ldarg_0),
-                    new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.forSale))),
-                    new(inst => inst.IsLdloc()),
-                    new(OpCodes.Callvirt),
-                    new(
-                        OpCodes.Callvirt,
-                        AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.maximumStackSize))
-                    ),
-                    new(
-                        OpCodes.Call,
-                        AccessTools.DeclaredMethod(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])
-                    ),
-                    new(inst => inst.IsStloc()),
-                ]
-            )
+            .MatchEndForward([
+                new(inst => inst.IsLdloc()),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.forSale))),
+                new(inst => inst.IsLdloc()),
+                new(OpCodes.Callvirt),
+                new(OpCodes.Callvirt, AccessTools.DeclaredMethod(typeof(ISalable), nameof(ISalable.maximumStackSize))),
+                new(
+                    OpCodes.Call,
+                    AccessTools.DeclaredMethod(typeof(Math), nameof(Math.Min), [typeof(int), typeof(int)])
+                ),
+                new(inst => inst.IsStloc()),
+            ])
             .ThrowIfNotMatch("Failed to find 'Math.Min(val, forSale[num3].maximumStackSize())'");
         CodeInstruction stlocStack = matcher.Instruction.Clone();
         matcher.Advance(-4);
@@ -1217,18 +1194,16 @@ internal static class Patches
 
         matcher
             .Advance(1)
-            .InsertAndAdvance(
-                [
-                    new(OpCodes.Ldarg_0),
-                    ldlocForSaleIdx.Clone(),
-                    new(
-                        OpCodes.Call,
-                        AccessTools.DeclaredMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_GetMaxBuyStack))
-                    ),
-                    stlocStack.Clone(),
-                    ldlocStack.Clone(),
-                ]
-            );
+            .InsertAndAdvance([
+                new(OpCodes.Ldarg_0),
+                ldlocForSaleIdx.Clone(),
+                new(
+                    OpCodes.Call,
+                    AccessTools.DeclaredMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_GetMaxBuyStack))
+                ),
+                stlocStack.Clone(),
+                ldlocStack.Clone(),
+            ]);
 
         return matcher.Instructions();
     }

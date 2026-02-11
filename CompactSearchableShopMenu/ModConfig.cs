@@ -11,6 +11,9 @@ internal sealed class ModConfig
     /// <summary>Number of items per row when there are no prices (e.g. dressers, catalogues).</summary>
     public int DresserItemPerRow { get; set; } = 9;
 
+    /// <summary>Show display name regardless of ShopItemPerRow.</summary>
+    public bool AlwaysShowDisplayName { get; set; } = false;
+
     /// <summary>Number of items to buy when using Shift.</summary>
     public int StackCount_5 { get; set; } = 5;
 
@@ -55,6 +58,7 @@ internal sealed class ModConfig
     {
         ShopItemPerRow = 4;
         DresserItemPerRow = 9;
+        AlwaysShowDisplayName = false;
         EnableSearchAndFilters = true;
         EnableSearch = true;
         SearchBoxOffset = Vector2.Zero;
@@ -119,6 +123,13 @@ internal sealed class ModConfig
                 tooltip: I18n.Config_DresserItemPerRow_Description,
                 min: 1,
                 max: 9
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => AlwaysShowDisplayName,
+                setValue: (value) => AlwaysShowDisplayName = value,
+                name: I18n.Config_AlwaysShowDisplayName_Name,
+                tooltip: I18n.Config_AlwaysShowDisplayName_Description
             );
         }
         else

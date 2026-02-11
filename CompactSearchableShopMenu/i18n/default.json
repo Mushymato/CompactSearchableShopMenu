@@ -5,6 +5,8 @@
   "config.ShopItemPerRow.description": "Number of items per row when a price must be displayed (e.g. regular shops).",
   "config.DresserItemPerRow.name": "Dresser Item Per Row",
   "config.DresserItemPerRow.description": "Number of items per row when there are no prices (e.g. dressers, catalogues).",
+  "config.AlwaysShowDisplayName.name": "Always Show Item Name",
+  "config.AlwaysShowDisplayName.description": "By default item names are hidden unless there is 1 item per row, check this box to always show them.",
   "config.StackCount.5.name": "Stack Count on Shift",
   "config.StackCount.5.description": "Number of items to buy when using left click & Shift (vanilla 5).",
   "config.StackCount.25.name": "Stack Count on Shift+Ctrl",

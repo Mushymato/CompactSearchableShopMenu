@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="$(MSBuildUserExtensionsPath)/sdv.props"
-    Condition="Exists('$(MSBuildUserExtensionsPath)/sdv.props')" />
+  <Import
+    Project="$(MSBuildUserExtensionsPath)/sdv.props"
+    Condition="Exists('$(MSBuildUserExtensionsPath)/sdv.props')"
+  />
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -16,7 +18,7 @@
     <Description>Compact and searchable shop menu for people with 2147483647 mods.</Description>
     <UniqueId>mushymato.CompactSearchableShopMenu</UniqueId>
     <UpdateKeys>Nexus:33271</UpdateKeys>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <MinimumApiVersion_Behavior>UpdateFull</MinimumApiVersion_Behavior>
     <MinimumGameVersion_Behavior>UpdateFull</MinimumGameVersion_Behavior>
     <Dependencies_VersionBehavior>UpdateFull</Dependencies_VersionBehavior>
@@ -31,5 +33,4 @@
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.3.2" />
     <PackageReference Include="Pathoschild.Stardew.ModTranslationClassBuilder" Version="2.2.0" />
   </ItemGroup>
-
 </Project>

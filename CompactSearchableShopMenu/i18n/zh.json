@@ -5,6 +5,8 @@
   "config.ShopItemPerRow.description": "当物品有价钱时(普通商店)，使用这个列数。",
   "config.DresserItemPerRow.name": "柜子每行物品数",
   "config.DresserItemPerRow.description": "当物品没有价钱时(柜子，家具目录)，使用这个列数。",
+  "config.AlwaysShowDisplayName.name": "一直显示物品名",
+  "config.AlwaysShowDisplayName.description": "默认情况下物品名只有在‘商店每行物品数’为1或物品无图标时显示，此选项使得物品名一直显示",
   "config.StackCount.5.name": "Shift购买数",
   "config.StackCount.5.description": "用左键和Shift时购买的数量(原版5)。",
   "config.StackCount.25.name": "Shift+Ctrl购买数",
