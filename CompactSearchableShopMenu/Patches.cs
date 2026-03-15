@@ -691,6 +691,7 @@ internal static class Patches
     {
         int perRowV = perRow.Value;
         bool shouldNotDrawIcon = !salable.ShouldDrawIcon();
+        bool drewDisplayName = false;
         if (perRowV <= ROW_SHOW_NAME)
         {
             SpriteText.drawString(
@@ -709,6 +710,7 @@ internal static class Patches
                 color,
                 scroll_text_alignment
             );
+            drewDisplayName = true;
         }
         else if (ModEntry.Config.AlwaysShowDisplayName || shouldNotDrawIcon)
         {
@@ -720,6 +722,7 @@ internal static class Patches
             y += (int)(stringSize.Y * 2f / 3);
             DrawShadowOrBoldText(b, s, new Vector2(x, y), color, alpha, layerDepth, Game1.smallFont);
             x += (int)stringSize.X;
+            drewDisplayName = true;
         }
 
         if (salable.Stack > 1)
@@ -738,7 +741,7 @@ internal static class Patches
                     color ?? Color.White
                 );
             }
-            else
+            else if (!drewDisplayName)
             {
                 DrawShadowOrBoldText(b, "x" + salable.Stack, new Vector2(x - 12, y), color, alpha, layerDepth);
             }

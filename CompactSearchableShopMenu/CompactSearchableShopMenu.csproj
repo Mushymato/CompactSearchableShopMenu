@@ -18,8 +18,8 @@
     <Authors>mushymato</Authors>
     <Description>Compact and searchable shop menu for people with 2147483647 mods.</Description>
     <UniqueId>mushymato.CompactSearchableShopMenu</UniqueId>
-    <UpdateKeys>Nexus:33271</UpdateKeys>
-    <Version>1.1.0</Version>
+    <UpdateKeys>Nexus:33271,GitHub:Mushymato/CompactSearchableShopMenu</UpdateKeys>
+    <Version>1.1.1</Version>
     <BaseManifest>new</BaseManifest>
     <MinimumApiVersion_Behavior>UpdateFull</MinimumApiVersion_Behavior>
     <MinimumGameVersion_Behavior>UpdateFull</MinimumGameVersion_Behavior>
