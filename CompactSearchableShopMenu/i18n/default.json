@@ -33,6 +33,8 @@
   "config.EnableTab.Special.description": "Enable mod added tabs.",
   "config.ShowDefaultTabIcon.name": "Show Default Tab Icon",
   "config.ShowDefaultTabIcon.description": "Show a default icon when the tab has no associated item.",
+  "config.EnableMinecartAsShopMenu.name": "Enable Minecart as Shop Menu",
+  "config.EnableMinecartAsShopMenu.description": "Use a shop menu to display minecart destinations.",
   // config fail messages
   "config.failed.Grid": "Failed to apply shop grid features, please report this to the mod page.",
   "config.failed.StackCount": "Failed to apply shop stack count features, please report this to the mod page.",

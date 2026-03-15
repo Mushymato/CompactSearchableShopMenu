@@ -18,7 +18,8 @@ public class ModEntry : Mod
 #endif
     private static IMonitor? mon;
     internal static ModConfig Config = null!;
-    internal static string ModId = null!;
+    internal const string ModId = "mushymato.CompactSearchableShopMenu";
+    internal const string TabAssetPrefix = $"{ModId}/tab/";
 
     internal static bool HasMod_BiggerBackpack = false;
 
@@ -29,7 +30,6 @@ public class ModEntry : Mod
     {
         I18n.Init(helper.Translation);
         mon = Monitor;
-        ModId = ModManifest.UniqueID;
         Config = Helper.ReadConfig<ModConfig>();
 
         helper.Events.GameLoop.GameLaunched += OnGameLaunched;
@@ -52,7 +52,7 @@ public class ModEntry : Mod
 
     private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
     {
-        if (e.NameWithoutLocale.StartsWith($"{ModId}/tab/"))
+        if (e.NameWithoutLocale.StartsWith(TabAssetPrefix))
         {
             string tabAssetPath = Path.Combine(
                 "assets",

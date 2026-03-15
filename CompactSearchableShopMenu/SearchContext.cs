@@ -154,7 +154,7 @@ internal sealed class SearchContext : IDisposable
         {
             Texture2D tabTexture = Game1.mouseCursors;
             tabSourceRect = cursorsTabsSourceRect;
-            string customTabTexture = $"{ModEntry.ModId}/tab/{Shop.ShopId}";
+            string customTabTexture = string.Concat(ModEntry.TabAssetPrefix, Shop.ShopId);
             if (Game1.content.DoesAssetExist<Texture2D>(customTabTexture))
             {
                 tabTexture = Game1.content.Load<Texture2D>(customTabTexture);

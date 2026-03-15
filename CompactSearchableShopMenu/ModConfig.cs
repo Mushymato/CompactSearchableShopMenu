@@ -53,6 +53,9 @@ internal sealed class ModConfig
     /// <summary>Show a default icon when tab does not have associated item.</summary>
     public bool ShowDefaultTabIcon { get; set; } = true;
 
+    /// <summary>Use a shop menu style minecart menu.</summary>
+    public bool EnableMinecartAsShopMenu { get; set; } = true;
+
     /// <summary>Restore default config values</summary>
     private void Reset()
     {
@@ -73,6 +76,8 @@ internal sealed class ModConfig
         EnableTab_PlantableSeeds = true;
         EnableTab_Recipes = true;
         EnableTab_Special = true;
+        // minecart
+        EnableMinecartAsShopMenu = true;
     }
 
     /// <summary>Add mod config to GMCM if available</summary>
@@ -254,6 +259,17 @@ internal sealed class ModConfig
         else
         {
             GMCM.AddParagraph(mod, I18n.Config_Failed_Search);
+        }
+
+        if (Patches.Success_Minecart)
+        {
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableMinecartAsShopMenu,
+                setValue: (value) => EnableMinecartAsShopMenu = value,
+                name: I18n.Config_EnableMinecartAsShopMenu_Name,
+                tooltip: I18n.Config_EnableMinecartAsShopMenu_Description
+            );
         }
     }
 }

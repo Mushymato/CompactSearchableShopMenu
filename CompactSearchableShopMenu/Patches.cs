@@ -58,6 +58,7 @@ internal static class Patches
     internal static bool Success_DrawWeak = true;
     internal static bool Success_StackCount = true;
     internal static bool Success_Search = true;
+    internal static bool Success_Minecart = true;
 
     internal static void Patch(IModHelper help, Harmony harmony)
     {
@@ -243,6 +244,24 @@ internal static class Patches
             );
             ModEntry.Log(ex.ToString());
         }
+
+        // minecart menu
+        try
+        {
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(GameLocation), nameof(GameLocation.ShowMineCartMenu)),
+                transpiler: new HarmonyMethod(typeof(Patches), nameof(GameLocation_ShowMineCartMenu_Transpiler))
+            );
+        }
+        catch (Exception ex)
+        {
+            Success_Minecart = false;
+            ModEntry.Log(
+                "Failed to apply minecart as shop menu patches, minecart will not be displayed as shop.",
+                LogLevel.Warn
+            );
+            ModEntry.Log(ex.ToString());
+        }
     }
 
     private static void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
@@ -424,11 +443,15 @@ internal static class Patches
 
     private static void MakeGridLikeSaleButtons(ShopMenu shopMenu)
     {
-        int perRowV = shopMenu.itemPriceAndStock.Values.Any(stockInfo =>
-            stockInfo.Price > 0 || stockInfo.TradeItemCount > 0
-        )
-            ? ModEntry.Config.ShopItemPerRow
-            : ModEntry.Config.DresserItemPerRow;
+        int perRowV =
+            (
+                shopMenu.ShopId == MinecartAsShopMenu.MinecartShopId
+                || shopMenu.itemPriceAndStock.Values.Any(stockInfo =>
+                    stockInfo.Price > 0 || stockInfo.TradeItemCount > 0
+                )
+            )
+                ? ModEntry.Config.ShopItemPerRow
+                : ModEntry.Config.DresserItemPerRow;
         perRowV = Math.Clamp(perRowV, 1, 9);
         SetPerRow(perRowV, shopMenu.forSale.Count);
 
@@ -1207,6 +1230,30 @@ internal static class Patches
                 stlocStack.Clone(),
                 ldlocStack.Clone(),
             ]);
+
+        return matcher.Instructions();
+    }
+
+    private static IEnumerable<CodeInstruction> GameLocation_ShowMineCartMenu_Transpiler(
+        IEnumerable<CodeInstruction> instructions,
+        ILGenerator generator
+    )
+    {
+        CodeMatcher matcher = new(instructions, generator);
+
+        // IL_02f4: callvirt instance void StardewValley.GameLocation::ShowPagedResponses(string, class [System.Collections]System.Collections.Generic.List`1<valuetype [System.Runtime]System.Collections.Generic.KeyValuePair`2<string, string>>, class [System.Runtime]System.Action`1<string>, bool, bool, int32)
+        matcher
+            .End()
+            .MatchStartBackwards([
+                new(
+                    OpCodes.Callvirt,
+                    AccessTools.DeclaredMethod(typeof(GameLocation), nameof(GameLocation.ShowPagedResponses))
+                ),
+            ])
+            .ThrowIfNotMatch("Failed to find 'ShowPagedResponses'");
+        matcher.InsertAndAdvance([new(OpCodes.Ldarg_1)]);
+        matcher.Opcode = OpCodes.Call;
+        matcher.Operand = AccessTools.DeclaredMethod(typeof(MinecartAsShopMenu), nameof(MinecartAsShopMenu.Show));
 
         return matcher.Instructions();
     }
