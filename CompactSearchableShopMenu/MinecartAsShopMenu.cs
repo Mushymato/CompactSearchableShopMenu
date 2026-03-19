@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
-using StardewValley.GameData.Minecarts;
 using StardewValley.ItemTypeDefinitions;
 using StardewValley.Menus;
 
@@ -94,7 +93,7 @@ internal static class MinecartAsShopMenu
                 on_response,
                 auto_select_single_choice,
                 addCancel,
-                itemsPerPage
+                ModEntry.IntegratedMinecarts_DestinationsPerPage?.Invoke() ?? itemsPerPage
             );
             return;
         }
@@ -102,7 +101,7 @@ internal static class MinecartAsShopMenu
         [
             .. responses.Select<KeyValuePair<string, string>, ISalable>(kv => new MinecartDestinationEntry(
                 kv.Key,
-                kv.Value,
+                kv.Value.Replace(" - ", "\n"),
                 on_response
             )),
         ];

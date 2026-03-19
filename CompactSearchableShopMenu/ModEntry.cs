@@ -1,4 +1,5 @@
 global using SObject = StardewValley.Object;
+using System.Reflection;
 using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -25,6 +26,7 @@ public class ModEntry : Mod
 
     private const string DefaultTabIconName = "mushymato.CompactSearchableShopMenu/icon/default";
     internal static Texture2D DefaultTabIcon => Game1.content.Load<Texture2D>(DefaultTabIconName);
+    internal static Func<int?>? IntegratedMinecarts_DestinationsPerPage = null;
 
     public override void Entry(IModHelper helper)
     {
@@ -48,6 +50,16 @@ public class ModEntry : Mod
     {
         Config.Register(Helper, ModManifest);
         HasMod_BiggerBackpack = Helper.ModRegistry.IsLoaded("spacechase0.BiggerBackpack");
+
+        if (
+            Helper.ModRegistry.Get("jibb.minecarts.C") is IModInfo icModInfo
+            && icModInfo.GetType().GetProperty("Mod")?.GetValue(icModInfo) is IMod icMod
+            && AccessTools.DeclaredField(icMod.GetType(), "DestinationsPerPage") is FieldInfo fieldInfo
+        )
+        {
+            Log("Accessed IntegratedMinecarts.DestinationsPerPage");
+            IntegratedMinecarts_DestinationsPerPage = () => (int?)(fieldInfo?.GetValue(icMod));
+        }
     }
 
     private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)

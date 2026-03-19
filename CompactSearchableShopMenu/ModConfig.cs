@@ -56,6 +56,9 @@ internal sealed class ModConfig
     /// <summary>Use a shop menu style minecart menu.</summary>
     public bool EnableMinecartAsShopMenu { get; set; } = true;
 
+    /// <summary>Number of items per row for the minecart shop.</summary>
+    public int MinecartItemPerRow { get; set; } = 4;
+
     /// <summary>Restore default config values</summary>
     private void Reset()
     {
@@ -78,6 +81,7 @@ internal sealed class ModConfig
         EnableTab_Special = true;
         // minecart
         EnableMinecartAsShopMenu = true;
+        MinecartItemPerRow = 4;
     }
 
     /// <summary>Add mod config to GMCM if available</summary>
@@ -129,6 +133,18 @@ internal sealed class ModConfig
                 min: 1,
                 max: 9
             );
+            if (Patches.Success_Minecart)
+            {
+                GMCM.AddNumberOption(
+                    mod,
+                    getValue: () => MinecartItemPerRow,
+                    setValue: (value) => MinecartItemPerRow = value,
+                    name: I18n.Config_MinecartItemPerRow_Name,
+                    tooltip: I18n.Config_MinecartItemPerRow_Description,
+                    min: 1,
+                    max: 9
+                );
+            }
             GMCM.AddBoolOption(
                 mod,
                 getValue: () => AlwaysShowDisplayName,

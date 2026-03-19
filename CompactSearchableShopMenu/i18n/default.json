@@ -35,6 +35,8 @@
   "config.ShowDefaultTabIcon.description": "Show a default icon when the tab has no associated item.",
   "config.EnableMinecartAsShopMenu.name": "Enable Minecart as Shop Menu",
   "config.EnableMinecartAsShopMenu.description": "Use a shop menu to display minecart destinations.",
+  "config.MinecartItemPerRow.name": "Minecart Item Per Row",
+  "config.MinecartItemPerRow.description": "Number of items per row for minecart destinations",
   // config fail messages
   "config.failed.Grid": "Failed to apply shop grid features, please report this to the mod page.",
   "config.failed.StackCount": "Failed to apply shop stack count features, please report this to the mod page.",

@@ -60,8 +60,12 @@ internal static class Patches
     internal static bool Success_Search = true;
     internal static bool Success_Minecart = true;
 
+    private static Harmony? harmony;
+
     internal static void Patch(IModHelper help, Harmony harmony)
     {
+        Patches.harmony = harmony;
+
         perRow.Value = 3;
         perRowR.Value = 4;
         help.Events.Player.Warped += OnWarped;
@@ -443,15 +447,22 @@ internal static class Patches
 
     private static void MakeGridLikeSaleButtons(ShopMenu shopMenu)
     {
-        int perRowV =
-            (
-                shopMenu.ShopId == MinecartAsShopMenu.MinecartShopId
-                || shopMenu.itemPriceAndStock.Values.Any(stockInfo =>
-                    stockInfo.Price > 0 || stockInfo.TradeItemCount > 0
-                )
-            )
-                ? ModEntry.Config.ShopItemPerRow
-                : ModEntry.Config.DresserItemPerRow;
+        int perRowV;
+        if (shopMenu.ShopId == MinecartAsShopMenu.MinecartShopId)
+        {
+            perRowV = ModEntry.Config.MinecartItemPerRow;
+        }
+        else if (
+            shopMenu.itemPriceAndStock.Values.Any(stockInfo => stockInfo.Price > 0 || stockInfo.TradeItemCount > 0)
+        )
+        {
+            perRowV = ModEntry.Config.ShopItemPerRow;
+        }
+        else
+        {
+            perRowV = ModEntry.Config.DresserItemPerRow;
+        }
+
         perRowV = Math.Clamp(perRowV, 1, 9);
         SetPerRow(perRowV, shopMenu.forSale.Count);
 
@@ -742,8 +753,15 @@ internal static class Patches
                 x -= 24;
             else
                 x -= 10;
-            y += (int)(stringSize.Y * 2f / 3);
-            DrawShadowOrBoldText(b, s, new Vector2(x, y), color, alpha, layerDepth, Game1.smallFont);
+            DrawShadowOrBoldText(
+                b,
+                s,
+                new Vector2(x, component.bounds.Bottom - stringSize.Y - 16),
+                color,
+                alpha,
+                layerDepth,
+                Game1.smallFont
+            );
             x += (int)stringSize.X;
             drewDisplayName = true;
         }
