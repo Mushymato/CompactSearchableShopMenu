@@ -313,9 +313,22 @@ internal static class Patches
         SearchContext?.Reposition();
     }
 
-    private static void ShopMenu_receiveLeftClick_Prefix(int x, int y)
+    private static bool ShopMenu_receiveLeftClick_Prefix(ShopMenu __instance, int x, int y)
     {
+        if (ModEntry.Config.FavoriteModifierKey.IsDown())
+        {
+            for (int i = 0; i < __instance.forSaleButtons.Count; i++)
+            {
+                if (__instance.forSaleButtons[i].containsPoint(x, y) && __instance.forSale.Count > i)
+                {
+                    ModEntry.Config.ToggleFavoriteStatus(__instance.ShopId, __instance.forSale[i]);
+                    SearchContext?.DoSearchOnFavorite();
+                    return false;
+                }
+            }
+        }
         SearchContext?.OnLeftClickPrefix(x, y);
+        return true;
     }
 
     private static void ShopMenu_receiveLeftClick_Postfix(int x, int y)

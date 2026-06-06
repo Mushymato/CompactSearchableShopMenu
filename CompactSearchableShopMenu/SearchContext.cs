@@ -13,6 +13,7 @@ internal sealed record FilterTab(ClickableTextureComponent CTC, Func<ISalable, b
 internal sealed class SearchContext : IDisposable
 {
     internal const string NO_FILTER = "NO_FILTER";
+    internal const string FAVORITES = "favorites";
     internal const string CATEGORY_PREFIX = "category_";
     internal const string RECIPES = "recipes";
     internal static readonly string CATEGORY_SEEDS = string.Concat(CATEGORY_PREFIX, SObject.SeedsCategory.ToString());
@@ -21,6 +22,7 @@ internal sealed class SearchContext : IDisposable
     internal const string SEEDS_TREE = "seeds_tree";
     internal const string SEEDS_BUSH = "seeds_bush";
     internal const string CSSM_TAB_PREFIX = "cssm_tab_";
+    internal const string STARDROP = "(O)434";
     internal static readonly Rectangle cursorsTabsSourceRect = new(16, 368, 16, 16);
     internal static readonly Rectangle recipeSourceRect = Game1.getSourceRectForStandardTileSheet(
         Game1.objectSpriteSheet,
@@ -42,7 +44,11 @@ internal sealed class SearchContext : IDisposable
         }
     }
 
+    // tabs
+    private readonly bool usesCSSMTabs = false;
+
     // visual themes
+    private readonly Texture2D tabTexture;
     private readonly Rectangle tabSourceRect = Rectangle.Empty;
 
     // elements
@@ -150,174 +156,206 @@ internal sealed class SearchContext : IDisposable
             searchBox.Text = I18n.Placeholder_Search();
         }
 
-        if (!shopMenu.tabButtons.Any())
+        usesCSSMTabs = !shopMenu.tabButtons.Any();
+        tabSourceRect = cursorsTabsSourceRect;
+        tabTexture = Game1.mouseCursors;
+        string customTabTexture = string.Concat(ModEntry.TabAssetPrefix, Shop.ShopId);
+        if (Game1.content.DoesAssetExist<Texture2D>(customTabTexture))
         {
-            Texture2D tabTexture = Game1.mouseCursors;
-            tabSourceRect = cursorsTabsSourceRect;
-            string customTabTexture = string.Concat(ModEntry.TabAssetPrefix, Shop.ShopId);
-            if (Game1.content.DoesAssetExist<Texture2D>(customTabTexture))
-            {
-                tabTexture = Game1.content.Load<Texture2D>(customTabTexture);
-                tabSourceRect = tabTexture.Bounds;
-            }
-
-            if (ModEntry.Config.EnableTab_Category)
-            {
-                foreach (var sale in Shop.forSale)
-                {
-                    if (sale is not Item item || item.IsRecipe)
-                        continue;
-                    int category = item.Category;
-                    string categoryKey = string.Concat(CATEGORY_PREFIX, item.Category.ToString());
-                    if (!filterTabs.ContainsKey(categoryKey))
-                    {
-                        filterTabs[categoryKey] = new(
-                            new(
-                                item.Category.ToString(),
-                                Rectangle.Empty,
-                                "",
-                                categoryKey,
-                                tabTexture,
-                                tabSourceRect,
-                                4f,
-                                false
-                            )
-                            {
-                                item = item,
-                            },
-                            (salable) => Filter_Category(category, salable)
-                        );
-                    }
-                }
-                filterTabsOrder.AddRange(filterTabs.Keys);
-            }
-
-            if (ModEntry.Config.EnableTab_DetailedSeeds)
-            {
-                if (filterTabs.ContainsKey(CATEGORY_SEEDS))
-                {
-                    filterTabs.Remove(CATEGORY_SEEDS);
-                    filterTabsOrder.Remove(CATEGORY_SEEDS);
-                }
-                // bush
-                if (Shop.forSale.FirstOrDefault(Filter_SeedBush) is Item seedBushItem)
-                {
-                    filterTabs[SEEDS_BUSH] = new(
-                        new(RECIPES, Rectangle.Empty, "", SEEDS_TREE, tabTexture, tabSourceRect, 4f, false)
-                        {
-                            item = seedBushItem,
-                        },
-                        Filter_SeedBush
-                    );
-                    filterTabsOrder.Insert(0, SEEDS_BUSH);
-                }
-                // tree
-                if (Shop.forSale.FirstOrDefault(Filter_SeedTree) is Item seedTreeItem)
-                {
-                    filterTabs[SEEDS_TREE] = new(
-                        new(RECIPES, Rectangle.Empty, "", SEEDS_TREE, tabTexture, tabSourceRect, 4f, false)
-                        {
-                            item = seedTreeItem,
-                        },
-                        Filter_SeedTree
-                    );
-                    filterTabsOrder.Insert(0, SEEDS_TREE);
-                }
-                // crop
-                if (Shop.forSale.FirstOrDefault(Filter_SeedCrop) is Item seedCropItem)
-                {
-                    filterTabs[SEEDS_CROP] = new(
-                        new(RECIPES, Rectangle.Empty, "", SEEDS_CROP, tabTexture, tabSourceRect, 4f, false)
-                        {
-                            item = seedCropItem,
-                        },
-                        Filter_SeedCrop
-                    );
-                    filterTabsOrder.Insert(0, SEEDS_CROP);
-                }
-            }
-
-            if (ModEntry.Config.EnableTab_PlantableSeeds)
-            {
-                if (Shop.forSale.FirstOrDefault(Filter_SeedCrop_Plantable) is Item seedCropItem)
-                {
-                    filterTabs[SEEDS_CROP_PLANTABLE] = new(
-                        new(RECIPES, Rectangle.Empty, "", SEEDS_CROP_PLANTABLE, tabTexture, tabSourceRect, 4f, false)
-                        {
-                            item = seedCropItem,
-                        },
-                        Filter_SeedCrop_Plantable
-                    );
-                    filterTabsOrder.Insert(0, SEEDS_CROP_PLANTABLE);
-                }
-            }
-
-            if (ModEntry.Config.EnableTab_Recipes)
-            {
-                if (Shop.forSale.FirstOrDefault(Filter_Recipe) is Item recipeItem)
-                {
-                    filterTabs[RECIPES] = new(
-                        new(RECIPES, Rectangle.Empty, "", RECIPES, tabTexture, tabSourceRect, 4f, false)
-                        {
-                            item = recipeItem,
-                        },
-                        Filter_Recipe
-                    );
-                    filterTabsOrder.Add(RECIPES);
-                }
-            }
-
-            if (ModEntry.Config.EnableTab_Special)
-            {
-                Dictionary<string, Item> specialTags = [];
-                foreach (var sale in Shop.forSale)
-                {
-                    if (sale is not Item item)
-                    {
-                        continue;
-                    }
-                    foreach (string ctag in item.GetContextTags())
-                    {
-                        if (!specialTags.ContainsKey(ctag) && ctag.StartsWithIgnoreCase(CSSM_TAB_PREFIX))
-                        {
-                            specialTags[ctag] = item;
-                        }
-                    }
-                }
-                foreach ((string ctag, Item item) in specialTags)
-                {
-                    filterTabs[ctag] = new(
-                        new(item.Category.ToString(), Rectangle.Empty, "", ctag, tabTexture, tabSourceRect, 4f, false)
-                        {
-                            item = item,
-                        },
-                        (salable) => Filter_SpecialContextTag(ctag, salable)
-                    );
-                }
-                filterTabsOrder.AddRange(specialTags.Keys.OrderBy(ctag => ctag));
-            }
-
-            if (filterTabsOrder.Count > 1)
-            {
-                ModEntry.Log($"Setup tabs for {Shop.ShopId}: {string.Join(", ", filterTabsOrder)}");
-                filterTabsOrder.Insert(0, NO_FILTER);
-                filterTabs[NO_FILTER] = new(
-                    new(NO_FILTER.ToString(), Rectangle.Empty, "", NO_FILTER, tabTexture, tabSourceRect, 4f, false),
-                    Filter_Nop
-                );
-            }
-            else
-            {
-                filterTabsOrder.Clear();
-                filterTabs.Clear();
-            }
+            tabTexture = Game1.content.Load<Texture2D>(customTabTexture);
+            tabSourceRect = tabTexture.Bounds;
         }
+        SetupTabs(shopMenu.ShopId);
 
         Reposition();
         if (searchBox != null)
         {
             Game1.keyboardDispatcher.Subscriber = searchBox;
             searchBox.Selected = false;
+        }
+
+        DoSearchOnFavorite();
+    }
+
+    private void SetupTabs(string shopId)
+    {
+        if (Shop == null)
+            throw new InvalidDataException();
+        if (!usesCSSMTabs)
+            return;
+
+        if (ModEntry.Config.EnableTab_Category)
+        {
+            foreach (var sale in Shop.forSale)
+            {
+                if (sale is not Item item || item.IsRecipe)
+                    continue;
+                int category = item.Category;
+                string categoryKey = string.Concat(CATEGORY_PREFIX, item.Category.ToString());
+                if (!filterTabs.ContainsKey(categoryKey))
+                {
+                    filterTabs[categoryKey] = new(
+                        new(
+                            item.Category.ToString(),
+                            Rectangle.Empty,
+                            "",
+                            categoryKey,
+                            tabTexture,
+                            tabSourceRect,
+                            4f,
+                            false
+                        )
+                        {
+                            item = item,
+                        },
+                        (salable) => Filter_Category(category, salable)
+                    );
+                }
+            }
+            filterTabsOrder.AddRange(filterTabs.Keys);
+        }
+
+        if (ModEntry.Config.EnableTab_DetailedSeeds)
+        {
+            if (filterTabs.ContainsKey(CATEGORY_SEEDS))
+            {
+                filterTabs.Remove(CATEGORY_SEEDS);
+                filterTabsOrder.Remove(CATEGORY_SEEDS);
+            }
+            // bush
+            if (Shop.forSale.FirstOrDefault(Filter_SeedBush) is Item seedBushItem)
+            {
+                filterTabs[SEEDS_BUSH] = new(
+                    new(RECIPES, Rectangle.Empty, "", SEEDS_TREE, tabTexture, tabSourceRect, 4f, false)
+                    {
+                        item = seedBushItem,
+                    },
+                    Filter_SeedBush
+                );
+                filterTabsOrder.Insert(0, SEEDS_BUSH);
+            }
+            // tree
+            if (Shop.forSale.FirstOrDefault(Filter_SeedTree) is Item seedTreeItem)
+            {
+                filterTabs[SEEDS_TREE] = new(
+                    new(RECIPES, Rectangle.Empty, "", SEEDS_TREE, tabTexture, tabSourceRect, 4f, false)
+                    {
+                        item = seedTreeItem,
+                    },
+                    Filter_SeedTree
+                );
+                filterTabsOrder.Insert(0, SEEDS_TREE);
+            }
+            // crop
+            if (Shop.forSale.FirstOrDefault(Filter_SeedCrop) is Item seedCropItem)
+            {
+                filterTabs[SEEDS_CROP] = new(
+                    new(RECIPES, Rectangle.Empty, "", SEEDS_CROP, tabTexture, tabSourceRect, 4f, false)
+                    {
+                        item = seedCropItem,
+                    },
+                    Filter_SeedCrop
+                );
+                filterTabsOrder.Insert(0, SEEDS_CROP);
+            }
+        }
+
+        if (ModEntry.Config.EnableTab_PlantableSeeds)
+        {
+            if (Shop.forSale.FirstOrDefault(Filter_SeedCrop_Plantable) is Item seedCropItem)
+            {
+                filterTabs[SEEDS_CROP_PLANTABLE] = new(
+                    new(RECIPES, Rectangle.Empty, "", SEEDS_CROP_PLANTABLE, tabTexture, tabSourceRect, 4f, false)
+                    {
+                        item = seedCropItem,
+                    },
+                    Filter_SeedCrop_Plantable
+                );
+                filterTabsOrder.Insert(0, SEEDS_CROP_PLANTABLE);
+            }
+        }
+
+        if (ModEntry.Config.EnableTab_Recipes)
+        {
+            if (Shop.forSale.FirstOrDefault(Filter_Recipe) is Item recipeItem)
+            {
+                filterTabs[RECIPES] = new(
+                    new(RECIPES, Rectangle.Empty, "", RECIPES, tabTexture, tabSourceRect, 4f, false)
+                    {
+                        item = recipeItem,
+                    },
+                    Filter_Recipe
+                );
+                filterTabsOrder.Add(RECIPES);
+            }
+        }
+
+        if (ModEntry.Config.EnableTab_Special)
+        {
+            Dictionary<string, Item> specialTags = [];
+            foreach (var sale in Shop.forSale)
+            {
+                if (sale is not Item item)
+                {
+                    continue;
+                }
+                foreach (string ctag in item.GetContextTags())
+                {
+                    if (!specialTags.ContainsKey(ctag) && ctag.StartsWithIgnoreCase(CSSM_TAB_PREFIX))
+                    {
+                        specialTags[ctag] = item;
+                    }
+                }
+            }
+            foreach ((string ctag, Item item) in specialTags)
+            {
+                filterTabs[ctag] = new(
+                    new(item.Category.ToString(), Rectangle.Empty, "", ctag, tabTexture, tabSourceRect, 4f, false)
+                    {
+                        item = item,
+                    },
+                    (salable) => Filter_SpecialContextTag(ctag, salable)
+                );
+            }
+            filterTabsOrder.AddRange(specialTags.Keys.OrderBy(ctag => ctag));
+        }
+
+        if (ModEntry.Config.EnableTab_Favorites)
+        {
+            if (!ModEntry.Config.FavoriteSalables.TryGetValue(shopId, out List<string>? favSalables))
+            {
+                favSalables = [];
+                ModEntry.Config.FavoriteSalables[shopId] = favSalables;
+            }
+            // favorites
+            filterTabs[FAVORITES] = new(
+                new(RECIPES, Rectangle.Empty, "", FAVORITES, tabTexture, tabSourceRect, 4f, false)
+                {
+                    item = ItemRegistry.Create(STARDROP),
+                },
+                (salable) => favSalables.Contains(salable.QualifiedItemId)
+            );
+            filterTabsOrder.Insert(0, FAVORITES);
+            if (favSalables.Any())
+            {
+                filterCurrent = FAVORITES;
+            }
+        }
+
+        if (filterTabsOrder.Count > 0)
+        {
+            ModEntry.Log($"Setup tabs for {Shop.ShopId}: {string.Join(", ", filterTabsOrder)}");
+
+            filterTabsOrder.Insert(0, NO_FILTER);
+            filterTabs[NO_FILTER] = new(
+                new(NO_FILTER.ToString(), Rectangle.Empty, "", NO_FILTER, tabTexture, tabSourceRect, 4f, false),
+                Filter_Nop
+            );
+        }
+        else
+        {
+            filterTabsOrder.Clear();
+            filterTabs.Clear();
         }
     }
 
@@ -367,8 +405,6 @@ internal sealed class SearchContext : IDisposable
             ctc.bounds.Height = tabSourceRect.Height * 4;
             n++;
         }
-
-        filterCurrent = NO_FILTER;
     }
 
     public void Dispose()
@@ -448,6 +484,14 @@ internal sealed class SearchContext : IDisposable
         {
             SearchActivate();
             searchBoxCC.snapMouseCursorToCenter();
+        }
+    }
+
+    public void DoSearchOnFavorite()
+    {
+        if (filterCurrent == FAVORITES)
+        {
+            DoSearch();
         }
     }
 
@@ -596,11 +640,25 @@ internal sealed class SearchContext : IDisposable
                     );
                 }
             }
+            else if (ctc.item.QualifiedItemId == STARDROP && ModEntry.Config.FavoriteModifierKey.IsDown())
+            {
+                b.Draw(
+                    Game1.mouseCursors,
+                    new(ctc.bounds.X + 8, ctc.bounds.Y + 14),
+                    new(368 + 16 * ((int)Game1.currentGameTime.TotalGameTime.TotalMilliseconds / 60 % 8), 16, 16, 16),
+                    Color.White,
+                    0f,
+                    Vector2.Zero,
+                    3f,
+                    SpriteEffects.None,
+                    0.9f
+                );
+            }
             else if (ctc.item.IsRecipe)
             {
                 b.Draw(
                     Game1.objectSpriteSheet,
-                    new(ctc.bounds.X + 3, ctc.bounds.Y + 6),
+                    new(ctc.bounds.X + 6, ctc.bounds.Y + 8),
                     recipeSourceRect,
                     Color.White,
                     0f,

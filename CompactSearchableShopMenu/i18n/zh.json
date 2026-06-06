@@ -21,6 +21,10 @@
   "config.SearchBoxOffset.description": "调整搜索框的位置（默认0 0）",
   "config.SearchByDescription.name": "搜素包括描述",
   "config.SearchByDescription.description": "搜素关键词包括物品描述",
+  "config.EnableTab.Favorites.name": "启用选项卡：收藏",
+  "config.EnableTab.Favorites.description": "开启每个商店被标记为‘收藏’物品的选项卡",
+  "config.FavoriteModifierKey.name": "收藏键",
+  "config.FavoriteModifierKey.description": "在商店里按下此键时，不购买物品而是将选中物品归入‘收藏’。",
   "config.EnableTab.Category.name": "启用选项卡：类别",
   "config.EnableTab.Category.description": "启用物品类别的选项卡。",
   "config.EnableTab.DetailedSeeds.name": "启用选项卡：详细种子分类",
@@ -40,5 +44,5 @@
   "config.failed.StackCount": "商店购买数量更改失败，请将此错误其报告到MOD页面。",
   "config.failed.Search": "商店搜索功能添加失败，请将此错误其报告到MOD页面。",
   // ui
-  "placeholder.search": "搜索..."
+  "placeholder.search": "搜索...",
 }

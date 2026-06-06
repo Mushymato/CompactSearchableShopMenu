@@ -1,5 +1,7 @@
 using System.Numerics;
 using StardewModdingAPI;
+using StardewModdingAPI.Utilities;
+using StardewValley;
 
 namespace CompactSearchableShopMenu;
 
@@ -36,6 +38,9 @@ internal sealed class ModConfig
     public bool SearchByDescription { get; set; } = false;
 
     /// <summary>Enable filter tabs for categories.</summary>
+    public bool EnableTab_Favorites { get; set; } = true;
+
+    /// <summary>Enable filter tabs for categories.</summary>
     public bool EnableTab_Category { get; set; } = true;
 
     /// <summary>Enable filter tabs that separate seeds into crop, fruit tree seed, and custom bush.</summary>
@@ -55,6 +60,12 @@ internal sealed class ModConfig
 
     /// <summary>Use a shop menu style minecart menu.</summary>
     public bool EnableMinecartAsShopMenu { get; set; } = true;
+
+    /// <summary>Modifier key, hold to add something to fav instead of buying.</summary>
+    public KeybindList FavoriteModifierKey { get; set; } = new(SButton.LeftAlt);
+
+    /// <summary>Stored favorite items</summary>
+    public Dictionary<string, List<string>> FavoriteSalables { get; set; } = [];
 
     /// <summary>Number of items per row for the minecart shop.</summary>
     public int MinecartItemPerRow { get; set; } = 4;
@@ -84,11 +95,14 @@ internal sealed class ModConfig
         MinecartItemPerRow = 4;
     }
 
+    private static IModHelper? helper = null;
+
     /// <summary>Add mod config to GMCM if available</summary>
     /// <param name="helper"></param>
     /// <param name="mod"></param>
     public void Register(IModHelper helper, IManifest mod)
     {
+        ModConfig.helper = helper;
         Integration.IGenericModConfigMenuApi? GMCM = helper.ModRegistry.GetApi<Integration.IGenericModConfigMenuApi>(
             "spacechase0.GenericModConfigMenu"
         );
@@ -231,6 +245,20 @@ internal sealed class ModConfig
             );
             GMCM.AddBoolOption(
                 mod,
+                getValue: () => EnableTab_Favorites,
+                setValue: (value) => EnableTab_Favorites = value,
+                name: I18n.Config_EnableTab_Favorites_Name,
+                tooltip: I18n.Config_EnableTab_Favorites_Description
+            );
+            GMCM.AddKeybindList(
+                mod,
+                getValue: () => FavoriteModifierKey,
+                setValue: (value) => FavoriteModifierKey = value,
+                name: I18n.Config_EnableSearchAndFilters_Name,
+                tooltip: I18n.Config_EnableSearchAndFilters_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
                 getValue: () => EnableTab_Category,
                 setValue: (value) => EnableTab_Category = value,
                 name: I18n.Config_EnableTab_Category_Name,
@@ -287,5 +315,23 @@ internal sealed class ModConfig
                 tooltip: I18n.Config_EnableMinecartAsShopMenu_Description
             );
         }
+    }
+
+    internal void ToggleFavoriteStatus(string shopId, ISalable salable)
+    {
+        if (!FavoriteSalables.TryGetValue(shopId, out List<string>? favSalables))
+        {
+            favSalables = [];
+            FavoriteSalables[shopId] = favSalables;
+        }
+        if (favSalables.Contains(salable.QualifiedItemId))
+        {
+            favSalables.Remove(salable.QualifiedItemId);
+        }
+        else
+        {
+            favSalables.Add(salable.QualifiedItemId);
+        }
+        helper?.WriteConfig(this);
     }
 }

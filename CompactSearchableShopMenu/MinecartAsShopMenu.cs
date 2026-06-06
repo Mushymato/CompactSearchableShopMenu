@@ -10,7 +10,7 @@ public sealed class MinecartDestinationEntry(string responseKey, string response
     : ISalable,
         IHaveItemTypeId
 {
-    public string TypeDefinitionId => "(Salable)";
+    public string TypeDefinitionId => $"({ModEntry.ModId}_Minecart)";
 
     public string QualifiedItemId => TypeDefinitionId + responseKey;
 
