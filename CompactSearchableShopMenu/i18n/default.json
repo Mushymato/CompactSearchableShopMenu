@@ -21,7 +21,7 @@
   "config.SearchByDescription.description": "Include item description in search.",
   "config.SearchBoxOffset.name": "Search Box Offset",
   "config.SearchBoxOffset.description": "Adjust the search box's position (default 0 0).",
-  "config.EnableTab.Favorites.name": "Enable Tabs: Favorites",
+  "config.EnableTab.Favorites.name": "Enable Tab: Favorites",
   "config.EnableTab.Favorites.description": "Enable tab of favorited items for each shop.",
   "config.FavoriteModifierKey.name": "Favorite Modifier Key",
   "config.FavoriteModifierKey.description": "When held, adds the clicked item to favorites instead of buying.",

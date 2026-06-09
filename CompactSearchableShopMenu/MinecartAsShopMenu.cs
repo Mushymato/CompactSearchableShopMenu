@@ -71,8 +71,8 @@ public sealed class MinecartDestinationEntry(string responseKey, string response
 
 internal static class MinecartAsShopMenu
 {
-    internal const string MinecartShopId = $"{ModEntry.ModId}_Minecart";
-    internal const string MinecartShopPortrait = $"{MinecartShopId}/Portrait";
+    internal const string MinecartShopIdPrefix = $"{ModEntry.ModId}_Minecart";
+    internal const string MinecartShopPortrait = $"{MinecartShopIdPrefix}/Portrait";
 
     public static void Show(
         GameLocation location,
@@ -125,7 +125,7 @@ internal static class MinecartAsShopMenu
             portraitTexture = Game1.content.Load<Texture2D>(MinecartShopPortrait);
         }
 
-        Game1.activeClickableMenu = new ShopMenu(MinecartShopId, salableDestinations)
+        Game1.activeClickableMenu = new ShopMenu($"{MinecartShopIdPrefix}_{networkId}", salableDestinations)
         {
             portraitTexture = portraitTexture,
             potraitPersonDialogue = prompt,

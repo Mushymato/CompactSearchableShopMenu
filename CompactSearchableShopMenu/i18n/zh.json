@@ -39,6 +39,8 @@
   "config.ShowDefaultTabIcon.description": "当标签没有对应物品时，显示默认图标。",
   "config.EnableMinecartAsShopMenu.name": "启用商店型矿车菜单",
   "config.EnableMinecartAsShopMenu.description": "使用商店菜单来显示矿车目的地",
+  "config.MinecartItemPerRow.name": "商店型矿车菜单每行物品数",
+  "config.MinecartItemPerRow.description": "当商店为矿车菜单时，使用这个列数。",
   // config fail messages
   "config.failed.Grid": "商店物品格子化失败，请将此错误其报告到MOD页面。",
   "config.failed.StackCount": "商店购买数量更改失败，请将此错误其报告到MOD页面。",

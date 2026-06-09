@@ -461,7 +461,7 @@ internal static class Patches
     private static void MakeGridLikeSaleButtons(ShopMenu shopMenu)
     {
         int perRowV;
-        if (shopMenu.ShopId == MinecartAsShopMenu.MinecartShopId)
+        if (shopMenu.ShopId.StartsWith(MinecartAsShopMenu.MinecartShopIdPrefix))
         {
             perRowV = ModEntry.Config.MinecartItemPerRow;
         }

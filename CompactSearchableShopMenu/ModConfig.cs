@@ -245,20 +245,6 @@ internal sealed class ModConfig
             );
             GMCM.AddBoolOption(
                 mod,
-                getValue: () => EnableTab_Favorites,
-                setValue: (value) => EnableTab_Favorites = value,
-                name: I18n.Config_EnableTab_Favorites_Name,
-                tooltip: I18n.Config_EnableTab_Favorites_Description
-            );
-            GMCM.AddKeybindList(
-                mod,
-                getValue: () => FavoriteModifierKey,
-                setValue: (value) => FavoriteModifierKey = value,
-                name: I18n.Config_EnableSearchAndFilters_Name,
-                tooltip: I18n.Config_EnableSearchAndFilters_Description
-            );
-            GMCM.AddBoolOption(
-                mod,
                 getValue: () => EnableTab_Category,
                 setValue: (value) => EnableTab_Category = value,
                 name: I18n.Config_EnableTab_Category_Name,
@@ -291,6 +277,20 @@ internal sealed class ModConfig
                 setValue: (value) => EnableTab_Special = value,
                 name: I18n.Config_EnableTab_Special_Name,
                 tooltip: I18n.Config_EnableTab_Special_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => EnableTab_Favorites,
+                setValue: (value) => EnableTab_Favorites = value,
+                name: I18n.Config_EnableTab_Favorites_Name,
+                tooltip: I18n.Config_EnableTab_Favorites_Description
+            );
+            GMCM.AddKeybindList(
+                mod,
+                getValue: () => FavoriteModifierKey,
+                setValue: (value) => FavoriteModifierKey = value,
+                name: I18n.Config_FavoriteModifierKey_Name,
+                tooltip: I18n.Config_FavoriteModifierKey_Description
             );
             GMCM.AddBoolOption(
                 mod,
