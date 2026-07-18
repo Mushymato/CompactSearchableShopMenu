@@ -219,10 +219,12 @@ internal static class Patches
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.drawCurrency)),
                 finalizer: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_drawCurrency_Finalizer))
             );
+#if !SDV17
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.update)),
                 postfix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_update_Postfix))
             );
+#endif
         }
         catch (Exception ex)
         {
@@ -351,10 +353,12 @@ internal static class Patches
         SearchContext?.Draw(b);
     }
 
+#if !SDV17
     private static void ShopMenu_update_Postfix()
     {
         SearchContext?.Update();
     }
+#endif
 
     private static int LeftClickHeldIndex(int originalValue, int y, Rectangle scrollBarRunner, ShopMenu shopMenu)
     {

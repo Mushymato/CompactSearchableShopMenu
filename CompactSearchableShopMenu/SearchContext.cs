@@ -71,7 +71,7 @@ internal sealed class SearchContext : IDisposable
 
     private static bool CheckPlantableThisSeason(ISalable salable)
     {
-        if (salable is not SObject obj || !Crop.TryGetData(obj.ItemId, out CropData data))
+        if (salable is not SObject obj || !Crop.TryGetData(obj.ItemId, out CropData? data))
             return false;
         return data.Seasons.Contains(Game1.season);
     }
@@ -528,6 +528,12 @@ internal sealed class SearchContext : IDisposable
             searchBox.Text = "";
             searchBox.SelectMe();
         }
+#if SDV17
+        if (Game1.options.gamepadControls && !Game1.lastCursorMotionWasMouse)
+        {
+            Game1.showTextEntry(searchBox);
+        }
+#endif
     }
 
     internal void SearchDeactivate()
@@ -684,9 +690,11 @@ internal sealed class SearchContext : IDisposable
         }
     }
 
+#if !SDV17
     internal void Update()
     {
         if (Game1.options.gamepadControls)
             searchBox?.Update();
     }
+#endif
 }
