@@ -19,7 +19,7 @@ internal sealed class PerRowValues()
     public int PerRow { get; set; } = 4;
     public int LastPageSize { get; set; } = 4;
     public int LastForSaleCount { get; set; } = 4;
-    public int MaxItemIndex => LastForSaleCount - LastPageSize;
+    public int MaxItemIndex => Math.Max(0, LastForSaleCount - LastPageSize);
 }
 
 internal static class Patches
@@ -327,18 +327,23 @@ internal static class Patches
 
     private static void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
     {
-        if (HoldCtx is HoldToBuyOrSellContext holdCtx)
+        if (ModEntry.Config.HoldToBuyOrSellKey.JustPressed())
         {
-            if (!holdCtx.IsBeingHeld && ModEntry.Config.HoldToBuyOrSellKey.JustPressed())
+            if (HoldCtx is HoldToBuyOrSellContext holdCtx && !holdCtx.IsBeingHeld)
             {
-                holdCtx.Press(perRow.Value.LastPageSize, e.Cursor.GetScaledScreenPixels().ToPoint());
-                return;
+                Game1.InUIMode(() =>
+                    holdCtx.Press(perRow.Value.MaxItemIndex, e.Cursor.GetScaledScreenPixels().ToPoint())
+                );
             }
-            else if (holdCtx.IsBeingHeld && !ModEntry.Config.HoldToBuyOrSellKey.IsDown())
+            return;
+        }
+        if (!ModEntry.Config.HoldToBuyOrSellKey.IsDown())
+        {
+            if (HoldCtx is HoldToBuyOrSellContext holdCtx && holdCtx.IsBeingHeld)
             {
-                holdCtx.Release();
-                return;
+                Game1.InUIMode(holdCtx.Release);
             }
+            return;
         }
         if (e.Pressed.Contains(SButton.LeftStick))
         {
@@ -739,6 +744,11 @@ internal static class Patches
 
     public static int GetBuyStackCount(ShopMenu shopMenu, ItemStockInformation stockInformation, ISalable salable)
     {
+        if (holdCtx.Value?.IsBeingHeld ?? false)
+        {
+            return 1;
+        }
+
         if (!Game1.oldKBState.IsKeyDown(Keys.LeftShift))
         {
             return 1;
@@ -1400,7 +1410,7 @@ internal static class Patches
 
     private static Item? AdjustSellItem(ShopMenu shopMenu, int x, int y, Item? item)
     {
-        if (item == null || HoldToSellAmount < 0 || HoldToBuyAmount >= item.Stack)
+        if (item == null || HoldToSellAmount < 0 || HoldToSellAmount >= item.Stack)
             return item;
 
         Item remaining = item.getOne();

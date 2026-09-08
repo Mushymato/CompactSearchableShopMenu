@@ -129,8 +129,10 @@ internal sealed class NumberPadState(int maxLength = 4)
         if (maxBuyable <= 0)
             return 0;
         string digits = new(Pending.Where(char.IsDigit).ToArray());
+        if (string.IsNullOrEmpty(digits))
+            return 0;
         int requested = int.TryParse(digits, out int n) ? n : 0;
-        return Math.Clamp(requested, 1, maxBuyable);
+        return Math.Clamp(requested, 0, maxBuyable);
     }
 }
 
@@ -183,7 +185,10 @@ internal sealed class NumberPadMenu : IClickableMenu
         _onCommit = onCommit;
         _onClosedRestoreFocus = onClosedRestoreFocus;
         _onClosed = onClosed;
-        _state.Preset(currentQuantity);
+        if (currentQuantity > 0)
+            _state.Preset(Math.Min(currentQuantity, _maxBuyable));
+        else
+            _state.Clear();
         _snappyAtOpen = Game1.options.snappyMenus && Game1.options.gamepadControls;
 
         _preview = new CenteredTextBox(

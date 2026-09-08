@@ -16,14 +16,17 @@ internal sealed class ModConfig
     /// <summary>Show display name regardless of ShopItemPerRow.</summary>
     public bool AlwaysShowDisplayName { get; set; } = false;
 
-    /// <summary>Click does not immediately buy</summary>
-    public bool EnableHoldToBuyOrSell { get; set; } = false;
+    /// <summary>Click does not immediately buy and instead opens a numpad</summary>
+    public bool EnableHoldToBuyOrSell { get; set; } = true;
 
     /// <summary>Which key to hold to buy</summary>
     public KeybindList HoldToBuyOrSellKey { get; set; } = KeybindList.Parse("MouseLeft, ControllerA");
 
-    /// <summary>Number of ticks to wait (1s = 60 ticks)</summary>
-    public int HoldToBuyOrSellTimeout { get; set; } = 60;
+    /// <summary>Number of ticks to wait before showing the numpad for a buy (1s = 60 ticks)</summary>
+    public int HoldToBuyTimeout { get; set; } = 60;
+
+    /// <summary>Number of ticks to wait before showing the numpad for a sale (1s = 60 ticks)</summary>
+    public int HoldToSellTimeout { get; set; } = 0;
 
     /// <summary>Number of items to buy when using Shift.</summary>
     public int StackCount_5 { get; set; } = 5;
@@ -198,10 +201,20 @@ internal sealed class ModConfig
             );
             GMCM.AddNumberOption(
                 mod,
-                () => HoldToBuyOrSellTimeout,
-                (value) => HoldToBuyOrSellTimeout = value,
-                I18n.Config_HoldToBuyOrSellTimeout_Name,
-                I18n.Config_HoldToBuyOrSellTimeout_Desc,
+                () => HoldToBuyTimeout,
+                (value) => HoldToBuyTimeout = value,
+                I18n.Config_HoldToBuyTimeout_Name,
+                I18n.Config_HoldToBuyTimeout_Desc,
+                min: 30,
+                max: 180,
+                interval: 30
+            );
+            GMCM.AddNumberOption(
+                mod,
+                () => HoldToSellTimeout,
+                (value) => HoldToSellTimeout = value,
+                I18n.Config_HoldToSellTimeout_Name,
+                I18n.Config_HoldToSellTimeout_Desc,
                 min: 30,
                 max: 180,
                 interval: 30

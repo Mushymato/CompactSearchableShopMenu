@@ -7,6 +7,14 @@
   "config.DresserItemPerRow.description": "当物品没有价钱时(柜子，家具目录)，使用这个列数。",
   "config.AlwaysShowDisplayName.name": "一直显示物品名",
   "config.AlwaysShowDisplayName.description": "默认情况下物品名只有在‘商店每行物品数’为1或物品无图标时显示，此选项使得物品名一直显示",
+  "config.EnableHoldToBuyOrSell.name": "启用：长按购买/出售",
+  "config.EnableHoldToBuyOrSell.desc": "长按打开一个用于指定购买或出售数量的数字键盘",
+  "config.HoldToBuyTimeout.name": "长按购买延迟",
+  "config.HoldToBuyTimeout.desc": "购买时，需要长按这么多帧后才会打开数字键盘(1秒=60帧)",
+  "config.HoldToSellTimeout.name": "长按出售延迟",
+  "config.HoldToSellTimeout.desc": "出售时，需要长按这么多帧后才会打开数字键盘(1秒=60帧)",
+  "config.HoldToBuyOrSellKey.name": "长按购买/出售键",
+  "config.HoldToBuyOrSellKey.desc": "按住此键使用长按购买/出售",
   "config.StackCount.5.name": "Shift购买数",
   "config.StackCount.5.description": "用左键和Shift时购买的数量(原版5)。",
   "config.StackCount.25.name": "Shift+Ctrl购买数",
@@ -45,6 +53,7 @@
   "config.failed.Grid": "商店物品格子化失败，请将此错误其报告到MOD页面。",
   "config.failed.StackCount": "商店购买数量更改失败，请将此错误其报告到MOD页面。",
   "config.failed.Search": "商店搜索功能添加失败，请将此错误其报告到MOD页面。",
+  "config.failed.HoldToBuyOrSell": "商店长按购买和出售失败，请将此错误其报告到MOD页面。",
   // ui
   "placeholder.search": "搜索...",
 }
