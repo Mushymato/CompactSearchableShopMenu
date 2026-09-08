@@ -47,6 +47,17 @@ internal static class Patches
         }
     }
 
+    private static readonly PerScreen<HoldToBuyContext?> holdCtx = new();
+    private static HoldToBuyContext? HoldContext
+    {
+        get => holdCtx.Value;
+        set
+        {
+            holdCtx.Value?.Dispose();
+            holdCtx.Value = value;
+        }
+    }
+
     internal static MethodInfo setScrollBarToCurrentIndexMethod = AccessTools.DeclaredMethod(
         typeof(ShopMenu),
         "setScrollBarToCurrentIndex"
@@ -59,6 +70,7 @@ internal static class Patches
     internal static bool Success_StackCount = true;
     internal static bool Success_Search = true;
     internal static bool Success_Minecart = true;
+    internal static bool Success_HoldToBuy = true;
 
     private static Harmony? harmony;
 
@@ -268,6 +280,26 @@ internal static class Patches
             );
             ModEntry.Log(ex.ToString());
         }
+
+        // hold to buy via numpad
+        try
+        {
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.releaseLeftClick)),
+                postfix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_releaseLeftClick_Postfix))
+            );
+        }
+        catch (Exception ex)
+        {
+            Success_HoldToBuy = false;
+            ModEntry.Log("Failed to apply hold to buy patches, hold to buy not available.", LogLevel.Warn);
+            ModEntry.Log(ex.ToString());
+        }
+    }
+
+    private static void ShopMenu_releaseLeftClick_Postfix(ShopMenu __instance, int x, int y)
+    {
+        HoldContext?.Release(__instance, x, y);
     }
 
     private static void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
@@ -291,6 +323,7 @@ internal static class Patches
     {
         // a silly event to dispose search context on, for lookup anything reasons
         SearchContext = null;
+        HoldContext = null;
     }
 
     private static void ShopMenu_Initialize_Postfix(ShopMenu __instance)
@@ -308,6 +341,18 @@ internal static class Patches
                 SearchContext = null;
             }
         }
+        if (ModEntry.Config.EnableHoldToBuy)
+        {
+            try
+            {
+                HoldContext = new();
+            }
+            catch
+            {
+                ModEntry.Log($"Failed to initialize search context for {__instance.ShopId}.", LogLevel.Warn);
+                SearchContext = null;
+            }
+        }
     }
 
     private static void ShopMenu_gameWindowSizeChanged_Postfix()
@@ -315,7 +360,9 @@ internal static class Patches
         SearchContext?.Reposition();
     }
 
-    private static bool ShopMenu_receiveLeftClick_Prefix(ShopMenu __instance, int x, int y)
+    internal static bool CheckHoldToBuy = true;
+
+    private static bool ShopMenu_receiveLeftClick_Prefix(ShopMenu __instance, int x, int y, bool playSound)
     {
         if (ModEntry.Config.FavoriteModifierKey.IsDown())
         {
@@ -325,6 +372,22 @@ internal static class Patches
                 {
                     ModEntry.Config.ToggleFavoriteStatus(__instance.ShopId, __instance.forSale[i]);
                     SearchContext?.DoSearchOnFavorite();
+                    return false;
+                }
+            }
+        }
+        if (ModEntry.Config.EnableHoldToBuy && CheckHoldToBuy && HoldContext is HoldToBuyContext holdCtx)
+        {
+            int currentItemIndex = Math.Min(0, Math.Max(__instance.forSale.Count - PerRowR, 0));
+            for (int i = 0; i < __instance.forSaleButtons.Count; i++)
+            {
+                if (
+                    currentItemIndex + i < __instance.forSale.Count
+                    && __instance.forSaleButtons[i].containsPoint(x, y)
+                    && __instance.forSale.Count > i
+                )
+                {
+                    holdCtx.Click(currentItemIndex, i, playSound);
                     return false;
                 }
             }
@@ -356,7 +419,8 @@ internal static class Patches
 #if !SDV17
     private static void ShopMenu_update_Postfix()
     {
-        SearchContext?.Update();
+        if (Game1.options.gamepadControls)
+            SearchContext?.Update();
     }
 #endif
 
@@ -1153,7 +1217,32 @@ internal static class Patches
             .InsertAndAdvance([ldlocClickableComponent.Clone()]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawTradeCount));
 
+        // right before draw mouse, insert thing to draw hold to buy bar
+        matcher
+            .MatchStartForward([
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.hoverText))),
+                new(OpCodes.Ldstr, ""),
+                new(OpCodes.Call),
+                new(OpCodes.Brfalse),
+            ])
+            .ThrowIfNotMatch("Failed to find 'if (hoverText != \"\")'")
+            .Advance(1)
+            .Insert([
+                new(OpCodes.Ldarg_1),
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawHoldToBuyBuildup))),
+                new(OpCodes.Ldarg_0),
+            ]);
+
         return matcher.Instructions();
+    }
+
+    private static void DrawHoldToBuyBuildup(ShopMenu __instance, SpriteBatch b)
+    {
+        if (ModEntry.Config.EnableHoldToBuy && HoldContext is HoldToBuyContext holdCtx)
+        {
+            holdCtx.Draw(__instance, b);
+        }
     }
 
     private static IEnumerable<CodeInstruction> ShopMenu_draw_Transpiler_weak(

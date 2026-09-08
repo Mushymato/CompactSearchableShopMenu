@@ -693,8 +693,7 @@ internal sealed class SearchContext : IDisposable
 #if !SDV17
     internal void Update()
     {
-        if (Game1.options.gamepadControls)
-            searchBox?.Update();
+        searchBox?.Update();
     }
 #endif
 }

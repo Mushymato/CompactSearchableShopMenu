@@ -16,6 +16,12 @@ internal sealed class ModConfig
     /// <summary>Show display name regardless of ShopItemPerRow.</summary>
     public bool AlwaysShowDisplayName { get; set; } = false;
 
+    /// <summary>Click does not immediately buy</summary>
+    public bool EnableHoldToBuy { get; set; } = false;
+
+    /// <summary>Number of ticks to wait (1s = 60 ticks)</summary>
+    public int HoldToBuyTimeout { get; set; } = 60;
+
     /// <summary>Number of items to buy when using Shift.</summary>
     public int StackCount_5 { get; set; } = 5;
 
