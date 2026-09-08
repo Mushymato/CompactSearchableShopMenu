@@ -41,11 +41,6 @@ public class ModEntry : Mod
         Patches.Patch(helper, harmony);
     }
 
-    public override object? GetApi()
-    {
-        return base.GetApi();
-    }
-
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
         Config.Register(Helper, ModManifest);

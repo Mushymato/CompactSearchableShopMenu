@@ -22,6 +22,9 @@ internal sealed class ModConfig
     /// <summary>Number of ticks to wait (1s = 60 ticks)</summary>
     public int HoldToBuyTimeout { get; set; } = 60;
 
+    /// <summary>Which key to hold to buy</summary>
+    public KeybindList HoldToBuyKey { get; set; } = KeybindList.Parse("MouseLeft, ControllerA");
+
     /// <summary>Number of items to buy when using Shift.</summary>
     public int StackCount_5 { get; set; } = 5;
 
