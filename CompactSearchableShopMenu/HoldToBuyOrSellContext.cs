@@ -67,7 +67,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
     {
         if (!shopMenuRef.TryGetTarget(out ShopMenu? shopMenu) || shopMenu == null)
         {
-            Cleanup();
+            Reset();
             return;
         }
         if (shopMenu != Game1.activeClickableMenu || shopMenu.GetChildMenu() != null)
@@ -126,7 +126,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
     {
         if (!TryGetCurrentCC(shopMenu, out ClickableComponent? cc))
         {
-            Cleanup();
+            Reset();
             return;
         }
         Rectangle ccRect = cc.bounds;
@@ -177,7 +177,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
             || !TryGetCurrentCC(shopMenu, out ClickableComponent? cc)
         )
         {
-            Cleanup();
+            Reset();
             return;
         }
         if (shopMenu != Game1.activeClickableMenu || shopMenu.GetChildMenu() != null)
@@ -196,7 +196,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
                             curretMaxBuyable,
                             (amount) => CommitBuy(shopMenu, cc, amount),
                             (menu) => RestoreFocus(menu, cc.myID),
-                            Cleanup
+                            Reset
                         )
                     );
                     return;
@@ -214,14 +214,14 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
                                 item.Stack,
                                 (amount) => CommitSale(shopMenu, cc, amount),
                                 (menu) => RestoreFocus(menu, cc.myID),
-                                Cleanup
+                                Reset
                             )
                         );
                         return;
                     }
                     break;
             }
-            Cleanup();
+            Reset();
             return;
         }
         else
@@ -229,7 +229,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
             Patches.CheckHoldToBuy = false;
             shopMenu.receiveLeftClick(cc.bounds.Center.X, cc.bounds.Center.Y);
             Patches.CheckHoldToBuy = true;
-            Cleanup();
+            Reset();
         }
 
         static void SetChildMenu(ShopMenu shopMenu, NumberPadMenu numberPadMenu)
@@ -284,7 +284,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
         Patches.HoldToSellAmount = -1;
     }
 
-    private void Cleanup()
+    public void Reset()
     {
         timeoutTick = -1;
         buyStepTick = -1;
@@ -298,6 +298,6 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
 
     public void Dispose()
     {
-        Cleanup();
+        Reset();
     }
 }

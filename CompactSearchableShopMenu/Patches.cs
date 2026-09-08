@@ -327,23 +327,29 @@ internal static class Patches
 
     private static void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
     {
-        if (ModEntry.Config.HoldToBuyOrSellKey.JustPressed())
+        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell)
         {
-            if (HoldCtx is HoldToBuyOrSellContext holdCtx && !holdCtx.IsBeingHeld)
+            if (ModEntry.Config.HoldToBuyOrSellKey.JustPressed() && !e.Held.Contains(SButton.LeftShift))
             {
-                Game1.InUIMode(() =>
-                    holdCtx.Press(perRow.Value.MaxItemIndex, e.Cursor.GetScaledScreenPixels().ToPoint())
-                );
+                if (HoldCtx is HoldToBuyOrSellContext holdCtx1 && !holdCtx1.IsBeingHeld)
+                {
+                    Game1.InUIMode(() =>
+                        holdCtx1.Press(perRow.Value.MaxItemIndex, e.Cursor.GetScaledScreenPixels().ToPoint())
+                    );
+                }
+                return;
             }
-            return;
-        }
-        if (!ModEntry.Config.HoldToBuyOrSellKey.IsDown())
-        {
             if (HoldCtx is HoldToBuyOrSellContext holdCtx && holdCtx.IsBeingHeld)
             {
-                Game1.InUIMode(holdCtx.Release);
+                if (e.Held.Contains(SButton.LeftShift))
+                {
+                    Game1.InUIMode(holdCtx.Reset);
+                }
+                else if (!ModEntry.Config.HoldToBuyOrSellKey.IsDown())
+                {
+                    Game1.InUIMode(holdCtx.Release);
+                }
             }
-            return;
         }
         if (e.Pressed.Contains(SButton.LeftStick))
         {
@@ -417,7 +423,7 @@ internal static class Patches
                 }
             }
         }
-        if (ModEntry.Config.EnableHoldToBuyOrSell && CheckHoldToBuy && (HoldCtx?.IsBeingHeld ?? false))
+        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell && CheckHoldToBuy && (HoldCtx?.IsBeingHeld ?? false))
         {
             return false;
         }
@@ -744,11 +750,6 @@ internal static class Patches
 
     public static int GetBuyStackCount(ShopMenu shopMenu, ItemStockInformation stockInformation, ISalable salable)
     {
-        if (holdCtx.Value?.IsBeingHeld ?? false)
-        {
-            return 1;
-        }
-
         if (!Game1.oldKBState.IsKeyDown(Keys.LeftShift))
         {
             return 1;
@@ -1286,7 +1287,7 @@ internal static class Patches
 
     private static void DrawHoldToBuyBuildup(ShopMenu __instance, SpriteBatch b)
     {
-        if (ModEntry.Config.EnableHoldToBuyOrSell && HoldCtx is HoldToBuyOrSellContext holdCtx)
+        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell && HoldCtx is HoldToBuyOrSellContext holdCtx)
         {
             holdCtx.Draw(__instance, b);
         }
