@@ -8,25 +8,56 @@ namespace CompactSearchableShopMenu;
 
 internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
 {
+    private enum BuyOrSellState
+    {
+        None,
+        Buy,
+        Sell,
+    }
+
     private int timeoutTick = -1;
+
+    #region buy
     private int currentItemIndex = -1;
     private int currentForSaleBtn = -1;
-    public bool IsBeingHeld { get; private set; } = false;
+    #endregion
+
+    #region sell
+    private string inventoryCCName = string.Empty;
+    #endregion
+
+    private BuyOrSellState buyOrSell = BuyOrSellState.None;
+    public bool IsBeingHeld => buyOrSell != BuyOrSellState.None;
     private readonly WeakReference<ShopMenu> shopMenuRef = new(shopMenu);
 
-    public bool TryGetCurrentForSaleBtn(ShopMenu shopMenu, [NotNullWhen(true)] out ClickableComponent? cc)
+    public bool TryGetCurrentCC(ShopMenu shopMenu, [NotNullWhen(true)] out ClickableComponent? cc)
     {
         cc = null;
-        if (!IsBeingHeld)
-            return false;
-        if (shopMenu.currentItemIndex != currentItemIndex)
-            return false;
-        if (shopMenu.currentItemIndex + currentForSaleBtn >= shopMenu.forSale.Count)
-            return false;
-        if (currentForSaleBtn < 0 || shopMenu.forSale.Count <= currentForSaleBtn)
-            return false;
-        cc = shopMenu.forSaleButtons[currentForSaleBtn];
-        return true;
+        switch (buyOrSell)
+        {
+            case BuyOrSellState.None:
+                return false;
+            case BuyOrSellState.Buy:
+                if (shopMenu.currentItemIndex != currentItemIndex)
+                    return false;
+                if (shopMenu.currentItemIndex + currentForSaleBtn >= shopMenu.forSale.Count)
+                    return false;
+                if (currentForSaleBtn < 0 || shopMenu.forSale.Count <= currentForSaleBtn)
+                    return false;
+                cc = shopMenu.forSaleButtons[currentForSaleBtn];
+                return true;
+            case BuyOrSellState.Sell:
+                foreach (ClickableComponent itemCC in shopMenu.inventory.inventory)
+                {
+                    if (itemCC.name == inventoryCCName)
+                    {
+                        cc = itemCC;
+                        return true;
+                    }
+                }
+                return false;
+        }
+        return false;
     }
 
     public void Press(int perRowR, Point mousePos)
@@ -40,42 +71,69 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
         {
             return;
         }
-        int currentItemIndex = Math.Clamp(shopMenu.currentItemIndex, 0, shopMenu.forSale.Count - perRowR);
+        // buy
+        int currItemIdx = Math.Clamp(shopMenu.currentItemIndex, 0, shopMenu.forSale.Count - perRowR);
         for (int i = 0; i < shopMenu.forSaleButtons.Count; i++)
         {
-            if (currentItemIndex + i < shopMenu.forSale.Count && shopMenu.forSaleButtons[i].bounds.Contains(mousePos))
+            if (currItemIdx + i < shopMenu.forSale.Count && shopMenu.forSaleButtons[i].bounds.Contains(mousePos))
             {
-                this.currentItemIndex = currentItemIndex;
-                this.currentForSaleBtn = i;
-                timeoutTick = Game1.ticks + ModEntry.Config.HoldToBuyTimeout;
-                IsBeingHeld = true;
+                currentItemIndex = currItemIdx;
+                currentForSaleBtn = i;
+                timeoutTick = Game1.ticks + ModEntry.Config.HoldToBuyOrSellTimeout;
+                buyOrSell = BuyOrSellState.Buy;
                 return;
+            }
+        }
+        // sell
+        if (shopMenu.heldItem == null && !shopMenu.readOnly)
+        {
+            foreach (ClickableComponent cc in shopMenu.inventory.inventory)
+            {
+                if (!cc.bounds.Contains(mousePos))
+                {
+                    continue;
+                }
+                if (
+                    int.TryParse(cc.name, out int idx)
+                    && idx >= 0
+                    && idx < shopMenu.inventory.actualInventory.Count
+                    && shopMenu.inventory.actualInventory[idx] is Item item
+                    && shopMenu.highlightItemToSell(item)
+                )
+                {
+                    inventoryCCName = cc.name;
+                    timeoutTick = Game1.ticks + ModEntry.Config.HoldToBuyOrSellTimeout;
+                    buyOrSell = BuyOrSellState.Sell;
+                    return;
+                }
             }
         }
     }
 
     internal void Draw(ShopMenu shopMenu, SpriteBatch b)
     {
-        if (!TryGetCurrentForSaleBtn(shopMenu, out ClickableComponent? cc))
+        if (!TryGetCurrentCC(shopMenu, out ClickableComponent? cc))
         {
             Cleanup();
             return;
         }
         Rectangle ccRect = cc.bounds;
+        int margin = buyOrSell == BuyOrSellState.Buy ? 8 : 4;
         Utility.DrawSquare(
             b,
             new(
-                ccRect.X + 8,
-                ccRect.Y + 8,
+                ccRect.X + margin,
+                ccRect.Y + margin,
                 (
                     Game1.ticks >= timeoutTick
                         ? ccRect.Width
                         : (int)(
                             ccRect.Width
-                            * (1f - ((timeoutTick - Game1.ticks) / (float)ModEntry.Config.HoldToBuyTimeout))
+                            * (1f - ((timeoutTick - Game1.ticks) / (float)ModEntry.Config.HoldToBuyOrSellTimeout))
                         )
-                ) - 16,
-                ccRect.Height - 16
+                )
+                    - margin * 2,
+                ccRect.Height - margin * 2
             ),
             0,
             backgroundColor: Color.Green * 0.4f
@@ -87,7 +145,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
         if (
             !shopMenuRef.TryGetTarget(out ShopMenu? shopMenu)
             || shopMenu == null
-            || !TryGetCurrentForSaleBtn(shopMenu, out ClickableComponent? cc)
+            || !TryGetCurrentCC(shopMenu, out ClickableComponent? cc)
         )
         {
             Cleanup();
@@ -99,20 +157,43 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
         }
         if (Game1.ticks >= timeoutTick)
         {
-            IsBeingHeld = false;
-            ISalable salable = shopMenu.forSale[shopMenu.currentItemIndex + currentForSaleBtn];
-            ItemStockInformation itemStockInformation = shopMenu.itemPriceAndStock[salable];
-            int maxBuyable = Patches.ClampToMaxBuyCount(shopMenu, itemStockInformation, salable, int.MaxValue);
-            shopMenu.hoveredItem = null;
-            shopMenu.SetChildMenu(
-                new NumberPadMenu(
-                    1,
-                    maxBuyable,
-                    (amount) => CommitPurchase(shopMenu, cc, amount),
-                    (menu) => RestoreFocus(menu, cc.myID),
-                    Cleanup
-                )
-            );
+            switch (buyOrSell)
+            {
+                case BuyOrSellState.Buy:
+                    ISalable salable = shopMenu.forSale[shopMenu.currentItemIndex + currentForSaleBtn];
+                    ItemStockInformation itemStockInformation = shopMenu.itemPriceAndStock[salable];
+                    int maxBuyable = Patches.ClampToMaxBuyCount(shopMenu, itemStockInformation, salable, int.MaxValue);
+                    shopMenu.hoveredItem = null;
+                    shopMenu.SetChildMenu(
+                        new NumberPadMenu(
+                            1,
+                            maxBuyable,
+                            (amount) => CommitBuy(shopMenu, cc, amount),
+                            (menu) => RestoreFocus(menu, cc.myID),
+                            Cleanup
+                        )
+                    );
+                    break;
+                case BuyOrSellState.Sell:
+                    if (
+                        int.TryParse(cc.name, out int idx)
+                        && shopMenu.inventory.actualInventory[idx] is Item item
+                        && shopMenu.highlightItemToSell(item)
+                    )
+                    {
+                        shopMenu.hoveredItem = null;
+                        shopMenu.SetChildMenu(
+                            new NumberPadMenu(
+                                1,
+                                item.Stack,
+                                (amount) => CommitSale(shopMenu, cc, amount),
+                                (menu) => RestoreFocus(menu, cc.myID),
+                                Cleanup
+                            )
+                        );
+                    }
+                    break;
+            }
         }
         else
         {
@@ -129,14 +210,26 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
         menu.snapCursorToCurrentSnappedComponent();
     }
 
-    private void CommitPurchase(ShopMenu shopMenu, ClickableComponent cc, int buyAmount)
+    private static void CommitBuy(ShopMenu shopMenu, ClickableComponent cc, int amount)
     {
-        Patches.HoldToBuyAmount = buyAmount;
+        if (amount == 0)
+            return;
+        Patches.HoldToBuyAmount = amount;
         Patches.CheckHoldToBuy = false;
         shopMenu.receiveLeftClick(cc.bounds.Center.X, cc.bounds.Center.Y);
         Patches.CheckHoldToBuy = true;
         Patches.HoldToBuyAmount = -1;
-        Cleanup();
+    }
+
+    private static void CommitSale(ShopMenu shopMenu, ClickableComponent cc, int amount)
+    {
+        if (amount == 0)
+            return;
+        Patches.HoldToSellAmount = amount;
+        Patches.CheckHoldToBuy = false;
+        shopMenu.receiveLeftClick(cc.bounds.Center.X, cc.bounds.Center.Y);
+        Patches.CheckHoldToBuy = true;
+        Patches.HoldToSellAmount = -1;
     }
 
     private void Cleanup()
@@ -144,7 +237,7 @@ internal sealed class HoldToBuyOrSellContext(ShopMenu shopMenu) : IDisposable
         timeoutTick = -1;
         currentItemIndex = -1;
         currentForSaleBtn = -1;
-        IsBeingHeld = false;
+        buyOrSell = BuyOrSellState.None;
     }
 
     public void Dispose()

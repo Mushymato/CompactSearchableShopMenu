@@ -17,13 +17,13 @@ internal sealed class ModConfig
     public bool AlwaysShowDisplayName { get; set; } = false;
 
     /// <summary>Click does not immediately buy</summary>
-    public bool EnableHoldToBuy { get; set; } = false;
-
-    /// <summary>Number of ticks to wait (1s = 60 ticks)</summary>
-    public int HoldToBuyTimeout { get; set; } = 60;
+    public bool EnableHoldToBuyOrSell { get; set; } = false;
 
     /// <summary>Which key to hold to buy</summary>
-    public KeybindList HoldToBuyKey { get; set; } = KeybindList.Parse("MouseLeft, ControllerA");
+    public KeybindList HoldToBuyOrSellKey { get; set; } = KeybindList.Parse("MouseLeft, ControllerA");
+
+    /// <summary>Number of ticks to wait (1s = 60 ticks)</summary>
+    public int HoldToBuyOrSellTimeout { get; set; } = 60;
 
     /// <summary>Number of items to buy when using Shift.</summary>
     public int StackCount_5 { get; set; } = 5;
@@ -180,6 +180,38 @@ internal sealed class ModConfig
         {
             GMCM.AddParagraph(mod, I18n.Config_Failed_Grid);
         }
+        if (Patches.Success_HoldToBuyOrSell)
+        {
+            GMCM.AddBoolOption(
+                mod,
+                () => EnableHoldToBuyOrSell,
+                (value) => EnableHoldToBuyOrSell = value,
+                I18n.Config_EnableHoldToBuyOrSell_Name,
+                I18n.Config_EnableHoldToBuyOrSell_Desc
+            );
+            GMCM.AddKeybindList(
+                mod,
+                () => HoldToBuyOrSellKey,
+                (value) => HoldToBuyOrSellKey = value,
+                I18n.Config_HoldToBuyOrSellKey_Name,
+                I18n.Config_HoldToBuyOrSellKey_Desc
+            );
+            GMCM.AddNumberOption(
+                mod,
+                () => HoldToBuyOrSellTimeout,
+                (value) => HoldToBuyOrSellTimeout = value,
+                I18n.Config_HoldToBuyOrSellTimeout_Name,
+                I18n.Config_HoldToBuyOrSellTimeout_Desc,
+                min: 30,
+                max: 180,
+                interval: 30
+            );
+        }
+        else
+        {
+            GMCM.AddParagraph(mod, I18n.Config_Failed_HoldToBuyOrSell);
+        }
+
         if (Patches.Success_StackCount)
         {
             GMCM.AddNumberOption(
