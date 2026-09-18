@@ -14,6 +14,14 @@ using StardewValley.Objects;
 
 namespace CompactSearchableShopMenu;
 
+internal sealed class PerRowValues()
+{
+    public int PerRow { get; set; } = 4;
+    public int LastPageSize { get; set; } = 4;
+    public int LastForSaleCount { get; set; } = 4;
+    public int MaxItemIndex => Math.Max(0, LastForSaleCount - LastPageSize);
+}
+
 internal static class Patches
 {
     private const int ROW_SHOW_NAME = 1;
@@ -21,19 +29,38 @@ internal static class Patches
     private const int ROW_SHOW_COUNT = 6;
     private const int ROW_SHOW_PRICE = 6;
     private const int ROW_SHOW_PRICE_BIG = 4;
-    internal static readonly PerScreen<int> perRow = new();
-    private static readonly PerScreen<int> perRowR = new();
-    internal static int PerRowR => perRowR.Value;
+    internal static readonly PerScreen<PerRowValues> perRow = new(() => new PerRowValues());
 
     internal static void SetPerRow(int perRowV, int forSaleCount)
     {
-        perRow.Value = perRowV;
-        int remainder = forSaleCount % perRowV;
+        if (perRow.Value is PerRowValues perRowVs)
+        {
+            perRowVs.PerRow = perRowV;
+            UpdateLastPageSize(forSaleCount, perRowVs);
+        }
+    }
+
+    internal static int MaxItemIndex(int forSaleCount)
+    {
+        if (perRow.Value is PerRowValues perRowVs)
+        {
+            if (perRowVs.LastForSaleCount != forSaleCount)
+            {
+                UpdateLastPageSize(forSaleCount, perRowVs);
+            }
+            return perRowVs.MaxItemIndex;
+        }
+        return forSaleCount - ShopMenu.itemsPerPage;
+    }
+
+    private static void UpdateLastPageSize(int forSaleCount, PerRowValues perRowVs)
+    {
+        perRowVs.LastForSaleCount = forSaleCount;
+        int remainder = forSaleCount % perRowVs.PerRow;
         if (remainder == 0)
-            remainder = perRowV * ShopMenu.itemsPerPage;
+            perRowVs.LastPageSize = perRowVs.PerRow * ShopMenu.itemsPerPage;
         else
-            remainder += (ShopMenu.itemsPerPage - 1) * perRowV;
-        perRowR.Value = remainder;
+            perRowVs.LastPageSize = remainder + (ShopMenu.itemsPerPage - 1) * perRowVs.PerRow;
     }
 
     private static readonly PerScreen<SearchContext?> searchCtx = new();
@@ -44,6 +71,17 @@ internal static class Patches
         {
             searchCtx.Value?.Dispose();
             searchCtx.Value = value;
+        }
+    }
+
+    private static readonly PerScreen<HoldToBuyOrSellContext?> holdCtx = new();
+    private static HoldToBuyOrSellContext? HoldCtx
+    {
+        get => holdCtx.Value;
+        set
+        {
+            holdCtx.Value?.Dispose();
+            holdCtx.Value = value;
         }
     }
 
@@ -59,6 +97,7 @@ internal static class Patches
     internal static bool Success_StackCount = true;
     internal static bool Success_Search = true;
     internal static bool Success_Minecart = true;
+    internal static bool Success_HoldToBuyOrSell = true;
 
     private static Harmony? harmony;
 
@@ -66,8 +105,6 @@ internal static class Patches
     {
         Patches.harmony = harmony;
 
-        perRow.Value = 3;
-        perRowR.Value = 4;
         help.Events.Player.Warped += OnWarped;
         help.Events.Input.ButtonsChanged += OnButtonsChanged;
 
@@ -219,10 +256,12 @@ internal static class Patches
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.drawCurrency)),
                 finalizer: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_drawCurrency_Finalizer))
             );
+#if !SDV17
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.update)),
                 postfix: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_update_Postfix))
             );
+#endif
         }
         catch (Exception ex)
         {
@@ -236,7 +275,7 @@ internal static class Patches
         {
             harmony.Patch(
                 original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
-                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_Transpiler))
+                transpiler: new HarmonyMethod(typeof(Patches), nameof(ShopMenu_receiveLeftClick_StackCount_Transpiler))
             );
         }
         catch (Exception ex)
@@ -266,10 +305,52 @@ internal static class Patches
             );
             ModEntry.Log(ex.ToString());
         }
+
+        // hold to buy or sell
+        try
+        {
+            harmony.Patch(
+                original: AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
+                transpiler: new HarmonyMethod(
+                    typeof(Patches),
+                    nameof(ShopMenu_receiveLeftClick_HoldToBuyOrSell_Transpiler)
+                )
+            );
+        }
+        catch (Exception ex)
+        {
+            Success_HoldToBuyOrSell = false;
+            ModEntry.LogOnce("Failed to apply hold to buy or sell, will not allow hold to buy or sell.", LogLevel.Warn);
+            ModEntry.Log(ex.ToString());
+        }
     }
 
     private static void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
     {
+        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell)
+        {
+            if (ModEntry.Config.HoldToBuyOrSellKey.JustPressed() && !e.Held.Contains(SButton.LeftShift))
+            {
+                if (HoldCtx is HoldToBuyOrSellContext holdCtx1 && !holdCtx1.IsBeingHeld)
+                {
+                    Game1.InUIMode(() =>
+                        holdCtx1.Press(perRow.Value.MaxItemIndex, e.Cursor.GetScaledScreenPixels().ToPoint())
+                    );
+                }
+                return;
+            }
+            if (HoldCtx is HoldToBuyOrSellContext holdCtx && holdCtx.IsBeingHeld)
+            {
+                if (e.Held.Contains(SButton.LeftShift))
+                {
+                    Game1.InUIMode(holdCtx.Reset);
+                }
+                else if (!ModEntry.Config.HoldToBuyOrSellKey.IsDown())
+                {
+                    Game1.InUIMode(holdCtx.Release);
+                }
+            }
+        }
         if (e.Pressed.Contains(SButton.LeftStick))
         {
             SearchContext?.GamepadToggleSearch();
@@ -278,10 +359,10 @@ internal static class Patches
 
     private static void ShopMenu_setScrollBarToCurrentIndex_Prefix(ShopMenu __instance)
     {
-        SetPerRow(perRow.Value, __instance.forSale.Count);
-        __instance.currentItemIndex = Math.Min(
+        __instance.currentItemIndex = Math.Clamp(
             __instance.currentItemIndex,
-            Math.Max(__instance.forSale.Count - PerRowR, 0)
+            0,
+            MaxItemIndex(__instance.forSale.Count)
         );
     }
 
@@ -289,16 +370,29 @@ internal static class Patches
     {
         // a silly event to dispose search context on, for lookup anything reasons
         SearchContext = null;
+        HoldCtx = null;
     }
 
     private static void ShopMenu_Initialize_Postfix(ShopMenu __instance)
     {
         SearchContext = null;
-        if (ModEntry.Config.EnableSearchAndFilters)
+        if (ModEntry.Config.EnableSearchAndFilters && Success_Search)
         {
             try
             {
                 SearchContext = new(__instance);
+            }
+            catch
+            {
+                ModEntry.Log($"Failed to initialize search context for {__instance.ShopId}.", LogLevel.Warn);
+                SearchContext = null;
+            }
+        }
+        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell)
+        {
+            try
+            {
+                HoldCtx = new(__instance);
             }
             catch
             {
@@ -313,7 +407,9 @@ internal static class Patches
         SearchContext?.Reposition();
     }
 
-    private static bool ShopMenu_receiveLeftClick_Prefix(ShopMenu __instance, int x, int y)
+    internal static bool CheckHoldToBuy = true;
+
+    private static bool ShopMenu_receiveLeftClick_Prefix(ShopMenu __instance, int x, int y, bool playSound)
     {
         if (ModEntry.Config.FavoriteModifierKey.IsDown())
         {
@@ -326,6 +422,10 @@ internal static class Patches
                     return false;
                 }
             }
+        }
+        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell && CheckHoldToBuy && (HoldCtx?.IsBeingHeld ?? false))
+        {
+            return false;
         }
         SearchContext?.OnLeftClickPrefix(x, y);
         return true;
@@ -351,19 +451,23 @@ internal static class Patches
         SearchContext?.Draw(b);
     }
 
+#if !SDV17
     private static void ShopMenu_update_Postfix()
     {
-        SearchContext?.Update();
+        if (Game1.options.gamepadControls)
+            SearchContext?.Update();
     }
+#endif
 
     private static int LeftClickHeldIndex(int originalValue, int y, Rectangle scrollBarRunner, ShopMenu shopMenu)
     {
-        int perRowV = perRow.Value;
+        PerRowValues perRowVs = perRow.Value;
+        int perRowV = perRowVs.PerRow;
         if (perRowV == 1)
             return originalValue;
         float percent = (float)(y - scrollBarRunner.Y) / scrollBarRunner.Height;
         int forSaleCount = shopMenu.forSale.Count;
-        int perRowRV = perRowR.Value;
+        int perRowRV = perRowVs.LastPageSize;
         return Math.Min(
             Math.Max(0, forSaleCount - perRowRV),
             Math.Max(0, (int)(MathF.Ceiling((float)(forSaleCount - perRowRV) / perRowV) * percent) * perRowV)
@@ -405,14 +509,14 @@ internal static class Patches
 
     private static void ShopMenu_downArrowPressed_Prefix(ShopMenu __instance)
     {
-        __instance.currentItemIndex += perRow.Value - 1;
+        __instance.currentItemIndex += perRow.Value.PerRow - 1;
         if (__instance.currentItemIndex >= __instance.forSale.Count - 1)
             __instance.currentItemIndex = __instance.forSale.Count - 1;
     }
 
     private static void ShopMenu_upArrowPressed_Prefix(ShopMenu __instance)
     {
-        __instance.currentItemIndex -= perRow.Value - 1;
+        __instance.currentItemIndex -= perRow.Value.PerRow - 1;
         if (__instance.currentItemIndex == 0)
             __instance.currentItemIndex = 1;
     }
@@ -439,8 +543,10 @@ internal static class Patches
                 break;
             matcher.Advance(-1);
             matcher.Opcode = OpCodes.Call;
-            matcher.Operand = AccessTools.PropertyGetter(typeof(Patches), nameof(PerRowR));
-            matcher.Advance(2);
+            matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(MaxItemIndex));
+            matcher.Advance(1);
+            matcher.RemoveInstruction();
+            matcher.Advance(1);
         }
         return matcher.Instructions();
     }
@@ -599,7 +705,7 @@ internal static class Patches
         SpriteText.ScrollTextAlignment scroll_text_alignment
     )
     {
-        if (perRow.Value <= 2)
+        if (perRow.Value.PerRow <= 2)
         {
             SpriteText.drawString(
                 b,
@@ -661,6 +767,17 @@ internal static class Patches
                 buyCount = Success_StackCount ? ModEntry.Config.StackCount_25 : 25;
             }
         }
+
+        return ClampToMaxBuyCount(shopMenu, stockInformation, salable, buyCount);
+    }
+
+    public static int ClampToMaxBuyCount(
+        ShopMenu shopMenu,
+        ItemStockInformation stockInformation,
+        ISalable salable,
+        int buyCount
+    )
+    {
         if (buyCount < 1)
             return 1;
 
@@ -674,7 +791,6 @@ internal static class Patches
         }
         buyCount = ApplyTradeItemStackCountCap(buyCount, stockInformation);
         buyCount = Math.Min(buyCount, salable.maximumStackSize());
-
         return buyCount;
     }
 
@@ -736,7 +852,7 @@ internal static class Patches
         ISalable salable
     )
     {
-        int perRowV = perRow.Value;
+        int perRowV = perRow.Value.PerRow;
         bool shouldNotDrawIcon = !salable.ShouldDrawIcon();
         bool drewDisplayName = false;
         if (perRowV <= ROW_SHOW_NAME)
@@ -834,7 +950,7 @@ internal static class Patches
         ClickableComponent component
     )
     {
-        int perRowV = perRow.Value;
+        int perRowV = perRow.Value.PerRow;
         if (perRowV <= ROW_SHOW_ORIG)
         {
             SpriteText.drawString(
@@ -880,7 +996,7 @@ internal static class Patches
         ClickableComponent component
     )
     {
-        int perRowV = perRow.Value;
+        int perRowV = perRow.Value.PerRow;
         if (perRowV <= ROW_SHOW_ORIG)
         {
             Utility.drawWithShadow(
@@ -937,7 +1053,7 @@ internal static class Patches
         ClickableComponent component
     )
     {
-        int perRowV = perRow.Value;
+        int perRowV = perRow.Value.PerRow;
         if (perRowV <= ROW_SHOW_ORIG)
         {
             SpriteText.drawString(
@@ -987,7 +1103,7 @@ internal static class Patches
         int count
     )
     {
-        int perRowV = perRow.Value;
+        int perRowV = perRow.Value.PerRow;
         int maxLen = Math.Max(sourceRect.Width, sourceRect.Height);
         float scaledLen = perRowV <= 2 ? 32f : 16f;
         float scaleAdj = perRowV <= 2 ? 4f : 2f;
@@ -1149,7 +1265,32 @@ internal static class Patches
             .InsertAndAdvance([ldlocClickableComponent.Clone()]);
         matcher.Operand = AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawTradeCount));
 
+        // right before draw mouse, insert thing to draw hold to buy bar
+        matcher
+            .MatchStartForward([
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.hoverText))),
+                new(OpCodes.Ldstr, ""),
+                new(OpCodes.Call),
+                new(OpCodes.Brfalse),
+            ])
+            .ThrowIfNotMatch("Failed to find 'if (hoverText != \"\")'")
+            .Advance(1)
+            .Insert([
+                new(OpCodes.Ldarg_1),
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(DrawHoldToBuyBuildup))),
+                new(OpCodes.Ldarg_0),
+            ]);
+
         return matcher.Instructions();
+    }
+
+    private static void DrawHoldToBuyBuildup(ShopMenu __instance, SpriteBatch b)
+    {
+        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell && HoldCtx is HoldToBuyOrSellContext holdCtx)
+        {
+            holdCtx.Draw(__instance, b);
+        }
     }
 
     private static IEnumerable<CodeInstruction> ShopMenu_draw_Transpiler_weak(
@@ -1183,7 +1324,7 @@ internal static class Patches
 
     private static int Get_StackCount_999() => ModEntry.Config.StackCount_999;
 
-    private static IEnumerable<CodeInstruction> ShopMenu_receiveLeftClick_Transpiler(
+    private static IEnumerable<CodeInstruction> ShopMenu_receiveLeftClick_StackCount_Transpiler(
         IEnumerable<CodeInstruction> instructions,
         ILGenerator generator
     )
@@ -1260,6 +1401,97 @@ internal static class Patches
                 ),
                 stlocStack.Clone(),
                 ldlocStack.Clone(),
+            ]);
+
+        return matcher.Instructions();
+    }
+
+    internal static int HoldToBuyAmount = -1;
+    internal static int HoldToSellAmount = -1;
+
+    private static Item? AdjustSellItem(ShopMenu shopMenu, int x, int y, Item? item)
+    {
+        if (item == null || HoldToSellAmount < 0 || HoldToSellAmount >= item.Stack)
+            return item;
+
+        Item remaining = item.getOne();
+        remaining.Stack = item.Stack - HoldToSellAmount;
+        item.Stack = HoldToSellAmount;
+        shopMenu.inventory.leftClick(x, y, remaining, false);
+
+        return item;
+    }
+
+    private static IEnumerable<CodeInstruction> ShopMenu_receiveLeftClick_HoldToBuyOrSell_Transpiler(
+        IEnumerable<CodeInstruction> instructions,
+        ILGenerator generator
+    )
+    {
+        CodeMatcher matcher = new(instructions, generator);
+
+        // IL_0191: ldarg.0
+        // IL_0192: ldfld class StardewValley.Menus.InventoryMenu StardewValley.Menus.ShopMenu::inventory
+        // IL_0197: ldarg.1
+        // IL_0198: ldarg.2
+        // IL_0199: ldnull
+        // IL_019a: ldc.i4.0
+        // IL_019b: callvirt instance class StardewValley.Item StardewValley.Menus.InventoryMenu::leftClick(int32, int32, class StardewValley.Item, bool)
+        // IL_01a0: stloc.3
+        // IL_01a1: ldloc.3
+        matcher
+            .MatchEndForward([
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.inventory))),
+                new(OpCodes.Ldarg_1),
+                new(OpCodes.Ldarg_2),
+                new(OpCodes.Ldnull),
+                new(OpCodes.Ldc_I4_0),
+                new(
+                    OpCodes.Callvirt,
+                    AccessTools.DeclaredMethod(typeof(InventoryMenu), nameof(InventoryMenu.leftClick))
+                ),
+                new(inst => inst.IsStloc()),
+                new(inst => inst.IsLdloc()),
+            ])
+            .ThrowIfNotMatch("Failed to find 'Item item = inventory.leftClick'");
+        CodeInstruction stlocItem = matcher.InstructionAt(-1).Clone();
+        CodeInstruction ldlocItem = matcher.Instruction.Clone();
+        matcher
+            .CreateLabel(out Label lbl1)
+            .InsertAndAdvance([
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldarg_1),
+                new(OpCodes.Ldarg_2),
+                ldlocItem,
+                new(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Patches), nameof(AdjustSellItem))),
+                stlocItem,
+            ]);
+
+        // IL_062a: stloc.s 14
+        // IL_062c: ldarg.0
+        // IL_062d: ldfld string StardewValley.Menus.ShopMenu::ShopId
+        // IL_0632: ldstr "ReturnedDonations"
+        // IL_0637: call bool [System.Runtime]System.String::op_Equality(string, string)
+        // IL_063c: brfalse.s IL_065d
+        matcher
+            .MatchStartForward([
+                new(inst => inst.IsStloc()),
+                new(OpCodes.Ldarg_0),
+                new(OpCodes.Ldfld, AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.ShopId))),
+                new(OpCodes.Ldstr, "ReturnedDonations"),
+            ])
+            .ThrowIfNotMatch("Failed to find 'ShopId == \"ReturnedDonations\"'");
+
+        CodeInstruction stlocBuyCount = matcher.Instruction.Clone();
+        matcher
+            .Advance(1)
+            .CreateLabel(out Label lbl2)
+            .Insert([
+                new(OpCodes.Ldsfld, AccessTools.DeclaredField(typeof(Patches), nameof(HoldToBuyAmount))),
+                new(OpCodes.Ldc_I4_0),
+                new(OpCodes.Blt, lbl2),
+                new(OpCodes.Ldsfld, AccessTools.DeclaredField(typeof(Patches), nameof(HoldToBuyAmount))),
+                stlocBuyCount,
             ]);
 
         return matcher.Instructions();
