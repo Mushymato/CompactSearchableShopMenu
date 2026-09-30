@@ -59,6 +59,7 @@ internal sealed class SearchContext : IDisposable
 
     // held states
     private string filterCurrent = NO_FILTER;
+    private string searchTextPrev = string.Empty;
     private List<ISalable>? forSaleAll = null;
 
     // helpers
@@ -508,9 +509,9 @@ internal sealed class SearchContext : IDisposable
         }
         if (searchBox?.Selected ?? false)
         {
-            string searchText = searchBox.Text;
-            if (!string.IsNullOrEmpty(searchText))
-                forSale = forSale.Where(fs => SearchSalables(searchText, fs));
+            searchTextPrev = searchBox.Text;
+            if (!string.IsNullOrEmpty(searchTextPrev))
+                forSale = forSale.Where(fs => SearchSalables(searchTextPrev, fs));
         }
         Shop.forSale = forSale.ToList();
         Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);
@@ -693,7 +694,13 @@ internal sealed class SearchContext : IDisposable
 #if !SDV17
     internal void Update()
     {
-        searchBox?.Update();
+        if (searchBox != null)
+        {
+            if (Game1.options.gamepadControls)
+                searchBox.Update();
+            if (searchBox.Selected && searchTextPrev.Length != searchBox.Text.Length)
+                DoSearch();
+        }
     }
 #endif
 }

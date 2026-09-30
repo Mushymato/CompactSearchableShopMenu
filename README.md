@@ -47,7 +47,9 @@ There are many shop menu mods out there and this mod is really just a combinatio
 
 - English
 
-- Simplified Chinese
+- 简体中文
+
+- Русский (by [ellatuk](https://github.com/ellatuk))
 
 Additional translations are greatly appreciated. If you would like to get DP for your work, feel free to make a separate mod page.
 

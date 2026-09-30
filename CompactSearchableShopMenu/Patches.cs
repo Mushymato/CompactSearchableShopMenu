@@ -423,7 +423,12 @@ internal static class Patches
                 }
             }
         }
-        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell && CheckHoldToBuy && (HoldCtx?.IsBeingHeld ?? false))
+        if (
+            ModEntry.Config.EnableHoldToBuyOrSell
+            && Success_HoldToBuyOrSell
+            && CheckHoldToBuy
+            && (HoldCtx?.IsBeingHeld ?? false)
+        )
         {
             return false;
         }
@@ -454,8 +459,7 @@ internal static class Patches
 #if !SDV17
     private static void ShopMenu_update_Postfix()
     {
-        if (Game1.options.gamepadControls)
-            SearchContext?.Update();
+        SearchContext?.Update();
     }
 #endif
 
@@ -1287,7 +1291,11 @@ internal static class Patches
 
     private static void DrawHoldToBuyBuildup(ShopMenu __instance, SpriteBatch b)
     {
-        if (ModEntry.Config.EnableHoldToBuyOrSell && Success_HoldToBuyOrSell && HoldCtx is HoldToBuyOrSellContext holdCtx)
+        if (
+            ModEntry.Config.EnableHoldToBuyOrSell
+            && Success_HoldToBuyOrSell
+            && HoldCtx is HoldToBuyOrSellContext holdCtx
+        )
         {
             holdCtx.Draw(__instance, b);
         }

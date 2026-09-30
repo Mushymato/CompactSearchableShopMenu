@@ -205,7 +205,7 @@ internal sealed class ModConfig
                 (value) => HoldToBuyTimeout = value,
                 I18n.Config_HoldToBuyTimeout_Name,
                 I18n.Config_HoldToBuyTimeout_Desc,
-                min: 30,
+                min: 0,
                 max: 180,
                 interval: 30
             );
@@ -215,7 +215,7 @@ internal sealed class ModConfig
                 (value) => HoldToSellTimeout = value,
                 I18n.Config_HoldToSellTimeout_Name,
                 I18n.Config_HoldToSellTimeout_Desc,
-                min: 30,
+                min: 0,
                 max: 180,
                 interval: 30
             );
