@@ -22,7 +22,21 @@ There are many shop menu mods out there and this mod is really just a combinatio
 
 - `Dresser Item Per Row`: Number of items per row when there are no prices (e.g. dressers, catalogues).
 
+- `Always Show Item Name`: By default item names are hidden unless there is 1 item per row, check this box to always show them.
+
+- `Enable: Hold to Buy or Sell`: Hold the bound key when buying or selling to open a numpad that decides how much to buy/sell.
+
+- `Hold to Buy Timeout`: How many ticks you must hold before the numpad is shown for purchasing (1 sec = 60 ticks).
+
+- `Hold to Sell Timeout`: How many ticks you must hold before the numpad is shown for selling (1 sec = 60 ticks).
+
+- `Hold Key`: Which key to hold for buying/selling.
+
+- `Stack Count on Shift`: Number of items to buy when using Shift+Ctrl (vanilla 5).
+
 - `Stack Count on Shift+Ctrl`: Number of items to buy when using Shift+Ctrl (vanilla 25).
+
+- `Stack Count on Shift+Ctrl+1`: Number of items to buy when using Shift+Ctrl (vanilla 999).
 
 - `Enable Search and Filters`: Enable search box and category tabs (if the shop does not already have side tabs), this setting overrides the following ones.
 
@@ -32,9 +46,15 @@ There are many shop menu mods out there and this mod is really just a combinatio
 
 - `Search Box Offset`: Adjust the search box's position (default 0 0).
 
+- `Enable Tab: Favorites`: Enable tab of favorited items for each shop.
+
+- `Favorite Modifier Key`: When held, adds the clicked item to favorites instead of buying.
+
 - `Enable Tabs: Categories`: Enable tabs based on item categories.
 
 - `Enable Tabs: Detailed Seeds`: Enable separate tabs for crop/tree/bush seeds.
+
+- `Enable Tabs: Plantable Seeds`: Enable separate tabs for crop seeds plantable this season, only the global season is considered.
 
 - `Enable Tab: Recipes`: Enable separate tab for recipes.
 
@@ -42,6 +62,9 @@ There are many shop menu mods out there and this mod is really just a combinatio
 
 - `Show Default Tab Icon`: Show an icon for case where the tab has no associated item.
 
+- `Enable Minecart as Shop Menu`: Use a shop menu to display minecart destinations.
+
+- `Minecart Item Per Row`: Number of items per row for minecart destinations.
 
 ## Translations
 
