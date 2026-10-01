@@ -27,6 +27,8 @@
   "config.EnableSearch.description": "Добавляет строку поиска.",
   "config.SearchByDescription.name": "Искать по описанию",
   "config.SearchByDescription.description": "Включать описание предмета в поиск.",
+  "config.SearchByInternalNames.name": "Search By Internal Name",
+  "config.SearchByInternalNames.description": "Include item internal name or qualified item id in search.",
   "config.SearchBoxOffset.name": "Смещение строки поиска",
   "config.SearchBoxOffset.description": "Подстройка положения строки поиска (по умолчанию 0, 0).",
   "config.EnableTab.Favorites.name": "Вкладка: избранное",

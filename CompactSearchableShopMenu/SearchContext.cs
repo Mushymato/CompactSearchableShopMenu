@@ -96,12 +96,7 @@ internal sealed class SearchContext : IDisposable
 
     private static bool Filter_SpecialContextTag(string ctag, ISalable salable)
     {
-        if (salable is Item item && item.HasContextTag(ctag))
-        {
-            ModEntry.Log($"{item.QualifiedItemId}: {ctag}");
-            return true;
-        }
-        return false;
+        return salable is Item item && item.HasContextTag(ctag);
     }
 
     private static bool Filter_SeedCrop_Shared(ISalable salable)
@@ -132,6 +127,11 @@ internal sealed class SearchContext : IDisposable
     private static bool SearchSalables(string searchText, ISalable salable)
     {
         if (salable.DisplayName.ContainsIgnoreCase(searchText))
+            return true;
+        if (
+            ModEntry.Config.SearchByInternalNames && salable.Name.ContainsIgnoreCase(searchText)
+            || salable.getDescription().ContainsIgnoreCase(searchText)
+        )
             return true;
         if (ModEntry.Config.SearchByDescription && salable.getDescription().ContainsIgnoreCase(searchText))
             return true;
@@ -427,7 +427,10 @@ internal sealed class SearchContext : IDisposable
     {
         if (searchBox?.Selected ?? false)
         {
-            DoSearch();
+            if (key == Keys.Escape)
+                SearchDeactivate();
+            else
+                DoSearch();
             return false;
         }
         return true;
@@ -511,7 +514,9 @@ internal sealed class SearchContext : IDisposable
         {
             searchTextPrev = searchBox.Text;
             if (!string.IsNullOrEmpty(searchTextPrev))
+            {
                 forSale = forSale.Where(fs => SearchSalables(searchTextPrev, fs));
+            }
         }
         Shop.forSale = forSale.ToList();
         Patches.setScrollBarToCurrentIndexMethod?.Invoke(Shop, []);

@@ -27,6 +27,8 @@
   "config.EnableSearch.description": "Enable search box.",
   "config.SearchByDescription.name": "Search By Description",
   "config.SearchByDescription.description": "Include item description in search.",
+  "config.SearchByInternalNames.name": "Search By Internal Name",
+  "config.SearchByInternalNames.description": "Include item internal name or qualified item id in search.",
   "config.SearchBoxOffset.name": "Search Box Offset",
   "config.SearchBoxOffset.description": "Adjust the search box's position (default 0 0).",
   "config.EnableTab.Favorites.name": "Enable Tab: Favorites",

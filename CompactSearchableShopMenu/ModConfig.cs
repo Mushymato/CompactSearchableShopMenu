@@ -49,6 +49,9 @@ internal sealed class ModConfig
     /// <summary>Enable searching by description</summary>
     public bool SearchByDescription { get; set; } = false;
 
+    /// <summary>Enable searching by internal name or qualified item id</summary>
+    public bool SearchByInternalNames { get; set; } = true;
+
     /// <summary>Enable filter tabs for categories.</summary>
     public bool EnableTab_Favorites { get; set; } = true;
 
@@ -85,26 +88,32 @@ internal sealed class ModConfig
     /// <summary>Restore default config values</summary>
     private void Reset()
     {
-        ShopItemPerRow = 4;
-        DresserItemPerRow = 9;
-        AlwaysShowDisplayName = false;
-        EnableSearchAndFilters = true;
-        EnableSearch = true;
-        SearchBoxOffset = Vector2.Zero;
-        SearchByDescription = false;
-        // stack count
-        StackCount_5 = 5;
-        StackCount_25 = 25;
-        StackCount_999 = 999;
-        // tabs
-        EnableTab_Category = true;
-        EnableTab_DetailedSeeds = true;
-        EnableTab_PlantableSeeds = true;
-        EnableTab_Recipes = true;
-        EnableTab_Special = true;
-        // minecart
-        EnableMinecartAsShopMenu = true;
-        MinecartItemPerRow = 4;
+        ModConfig defaultConfig = new();
+        ShopItemPerRow = defaultConfig.ShopItemPerRow;
+        DresserItemPerRow = defaultConfig.DresserItemPerRow;
+        AlwaysShowDisplayName = defaultConfig.AlwaysShowDisplayName;
+        EnableHoldToBuyOrSell = defaultConfig.EnableHoldToBuyOrSell;
+        HoldToBuyOrSellKey = defaultConfig.HoldToBuyOrSellKey;
+        HoldToBuyTimeout = defaultConfig.HoldToBuyTimeout;
+        HoldToSellTimeout = defaultConfig.HoldToSellTimeout;
+        StackCount_5 = defaultConfig.StackCount_5;
+        StackCount_25 = defaultConfig.StackCount_25;
+        StackCount_999 = defaultConfig.StackCount_999;
+        EnableSearchAndFilters = defaultConfig.EnableSearchAndFilters;
+        EnableSearch = defaultConfig.EnableSearch;
+        SearchBoxOffset = defaultConfig.SearchBoxOffset;
+        SearchByDescription = defaultConfig.SearchByDescription;
+        SearchByInternalNames = defaultConfig.SearchByInternalNames;
+        EnableTab_Favorites = defaultConfig.EnableTab_Favorites;
+        EnableTab_Category = defaultConfig.EnableTab_Category;
+        EnableTab_DetailedSeeds = defaultConfig.EnableTab_DetailedSeeds;
+        EnableTab_PlantableSeeds = defaultConfig.EnableTab_PlantableSeeds;
+        EnableTab_Recipes = defaultConfig.EnableTab_Recipes;
+        EnableTab_Special = defaultConfig.EnableTab_Special;
+        ShowDefaultTabIcon = defaultConfig.ShowDefaultTabIcon;
+        EnableMinecartAsShopMenu = defaultConfig.EnableMinecartAsShopMenu;
+        FavoriteModifierKey = defaultConfig.FavoriteModifierKey;
+        MinecartItemPerRow = defaultConfig.MinecartItemPerRow;
     }
 
     private static IModHelper? helper = null;
@@ -278,6 +287,13 @@ internal sealed class ModConfig
                 setValue: (value) => SearchByDescription = value,
                 name: I18n.Config_SearchByDescription_Name,
                 tooltip: I18n.Config_SearchByDescription_Description
+            );
+            GMCM.AddBoolOption(
+                mod,
+                getValue: () => SearchByInternalNames,
+                setValue: (value) => SearchByInternalNames = value,
+                name: I18n.Config_SearchByInternalNames_Name,
+                tooltip: I18n.Config_SearchByInternalNames_Description
             );
             GMCM.AddTextOption(
                 mod,
