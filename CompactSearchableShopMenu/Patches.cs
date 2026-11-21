@@ -396,8 +396,8 @@ internal static class Patches
             }
             catch
             {
-                ModEntry.Log($"Failed to initialize search context for {__instance.ShopId}.", LogLevel.Warn);
-                SearchContext = null;
+                ModEntry.Log($"Failed to initialize hold-to-sell for {__instance.ShopId}.", LogLevel.Warn);
+                HoldCtx = null;
             }
         }
     }
@@ -1485,7 +1485,7 @@ internal static class Patches
             .MatchStartForward([
                 new(inst => inst.IsStloc()),
                 new(OpCodes.Ldarg_0),
-                new(OpCodes.Ldfld, AccessTools.DeclaredMethod(typeof(ShopMenu), nameof(ShopMenu.ShopId))),
+                new(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(ShopMenu), nameof(ShopMenu.ShopId))),
                 new(OpCodes.Ldstr, "ReturnedDonations"),
             ])
             .ThrowIfNotMatch("Failed to find 'ShopId == \"ReturnedDonations\"'");
